@@ -1,0 +1,247 @@
+[
+  {
+    "id": "regional-manager",
+    "persona": "Michael Scott",
+    "title": "Regional Manager (Orchestrator)",
+    "model": "claude-sonnet-5.5",
+    "color": "#1f4e9c",
+    "team": "lead",
+    "show": "The Office",
+    "summary": "Your chief of staff. Answers quick requests directly, picks the right specialist and model for deeper work, calls team meetings and brainstorms, and hands you one consolidated answer.",
+    "owns": "Routing, task breakdown, final answer",
+    "sources": [
+      "routing"
+    ],
+    "initials": "MS",
+    "avatar": "avatars/regional-manager.svg"
+  },
+  {
+    "id": "sales-lead",
+    "persona": "Dwight Schrute",
+    "title": "Assistant (to the) Regional Manager · MSX Pipeline Lead",
+    "model": "gpt-5.5",
+    "color": "#b8860b",
+    "team": "sales",
+    "show": "The Office",
+    "summary": "Leads the Scranton Branch. Owns MSX (Dynamics 365): opportunities, milestones, deal teams, pipeline hygiene and forecast check-ins. Coordinates the sales staff for multi-angle account questions.",
+    "owns": "MSX opportunities, milestones, pipeline reviews",
+    "sources": [
+      "msx"
+    ],
+    "initials": "DS",
+    "avatar": "avatars/sales-lead.svg"
+  },
+  {
+    "id": "account-strategist",
+    "persona": "Jim Halpert",
+    "title": "Account Strategist",
+    "model": "claude-sonnet-5.5",
+    "color": "#3d7cc9",
+    "team": "sales",
+    "show": "The Office",
+    "summary": "Account briefings, call prep, account plans and customer-facing email drafts. Pulls context from mail, meetings and MSX so you walk into every call prepared.",
+    "owns": "Account briefs, meeting prep, customer drafts",
+    "sources": [
+      "m365",
+      "msx"
+    ],
+    "initials": "JH",
+    "avatar": "avatars/account-strategist.svg"
+  },
+  {
+    "id": "office-administrator",
+    "persona": "Pam Beesly",
+    "title": "Office Administrator · Inbox, Calendar & Teams",
+    "model": "claude-haiku-5.5",
+    "color": "#d98aa0",
+    "team": "sales",
+    "show": "The Office",
+    "summary": "Inbox triage, calendar and scheduling, Teams chat catch-up, meeting recaps and action items. Drafts replies and invites for your approval.",
+    "owns": "Email, calendar, Teams chats and meetings",
+    "sources": [
+      "m365"
+    ],
+    "initials": "PB",
+    "avatar": "avatars/office-administrator.svg"
+  },
+  {
+    "id": "finance-analyst",
+    "persona": "Angela Martin",
+    "title": "Head of Accounting · Consumption & Quota",
+    "model": "gpt-5.5",
+    "color": "#7d6b8f",
+    "team": "sales",
+    "show": "The Office",
+    "summary": "Azure consumption (ACR), quota attainment, MACC burn-down and forecast-versus-actual reconciliation. Precise, sourced numbers only.",
+    "owns": "ACR, quota, MACC, forecast numbers",
+    "sources": [
+      "msx"
+    ],
+    "initials": "AM",
+    "avatar": "avatars/finance-analyst.svg"
+  },
+  {
+    "id": "renewals-desk",
+    "persona": "Stanley Hudson",
+    "title": "Renewals & Deal Desk",
+    "model": "gpt-5.4-mini",
+    "color": "#6b4f2c",
+    "team": "sales",
+    "show": "The Office",
+    "summary": "Renewal dates, contract timelines, stale deals and close-date slips. Short, no-nonsense status lists.",
+    "owns": "Renewals, close dates, stale-deal lists",
+    "sources": [
+      "msx"
+    ],
+    "initials": "SH",
+    "avatar": "avatars/renewals-desk.svg"
+  },
+  {
+    "id": "relationship-manager",
+    "persona": "Phyllis Vance",
+    "title": "Customer Relationships & Follow-ups",
+    "model": "claude-haiku-5.5",
+    "color": "#9c6b98",
+    "team": "sales",
+    "show": "The Office",
+    "summary": "Stakeholder maps, relationship history, follow-up tracking and warm thank-you or check-in notes. Remembers who you promised what.",
+    "owns": "Stakeholder maps, follow-up tracker",
+    "sources": [
+      "m365",
+      "msx"
+    ],
+    "initials": "PV",
+    "avatar": "avatars/relationship-manager.svg"
+  },
+  {
+    "id": "communications",
+    "persona": "Kelly Kapoor",
+    "title": "Customer Service & Communications",
+    "model": "gemini-3.7-flash",
+    "color": "#e75480",
+    "team": "sales",
+    "show": "The Office",
+    "summary": "Teams posts, announcements, newsletters, tone polish and what's-trending catch-ups across your chats and channels.",
+    "owns": "Announcements, Teams posts, tone",
+    "sources": [
+      "m365"
+    ],
+    "initials": "KK",
+    "avatar": "avatars/communications.svg"
+  },
+  {
+    "id": "summarizer",
+    "persona": "Kevin Malone",
+    "title": "TL;DR Specialist",
+    "model": "gpt-5.4-mini",
+    "color": "#c97b2d",
+    "team": "sales",
+    "show": "The Office",
+    "summary": "Turns long threads, documents and meetings into the shortest useful summary. Few words, job done.",
+    "owns": "TL;DRs, digests",
+    "sources": [
+      "m365"
+    ],
+    "initials": "KM",
+    "avatar": "avatars/summarizer.svg"
+  },
+  {
+    "id": "cloud-ai-architect",
+    "persona": "Oscar Martinez",
+    "title": "Principal Architect · Azure, Infrastructure, Databases & AI",
+    "model": "claude-opus-5.5",
+    "color": "#2e8b57",
+    "team": "engineering",
+    "show": "The Office",
+    "summary": "Leads Dunder Mifflin Infinity and is the deep technical expert: Azure architecture, networking, identity, infrastructure as code, databases (SQL, Cosmos DB, PostgreSQL, Fabric), AI and agents (Foundry, Azure OpenAI, RAG), sizing, pricing and well-architected reviews.",
+    "owns": "Technical answers, architecture, solution designs",
+    "sources": [
+      "azure",
+      "learn",
+      "m365"
+    ],
+    "initials": "OM",
+    "avatar": "avatars/cloud-ai-architect.svg"
+  },
+  {
+    "id": "product-manager",
+    "persona": "Ryan Howard",
+    "title": "Product, Innovation & Brainstorm Lead",
+    "model": "claude-sonnet-5.5",
+    "color": "#34495e",
+    "team": "engineering",
+    "show": "The Office",
+    "summary": "The team's creative ideas person. Leads brainstorms in the conference room, then turns the best ideas into product briefs, demo scripts, use-case catalogues, roadmaps and success metrics.",
+    "owns": "Brainstorms, product briefs, demo scripts, roadmaps",
+    "sources": [
+      "m365"
+    ],
+    "initials": "RH",
+    "avatar": "avatars/product-manager.svg"
+  },
+  {
+    "id": "automation-engineer",
+    "persona": "Darryl Philbin",
+    "title": "Engineering Lead · Automation & Code",
+    "model": "gpt-5.3-codex",
+    "color": "#8e5a2b",
+    "team": "engineering",
+    "show": "The Office",
+    "summary": "Writes and fixes code: scripts, integrations, prototypes, Power Automate flows, data pulls and small tools that take repetitive work off your plate.",
+    "owns": "Scripts, prototypes, automations",
+    "sources": [
+      "code"
+    ],
+    "initials": "DP",
+    "avatar": "avatars/automation-engineer.svg"
+  },
+  {
+    "id": "presentation-designer",
+    "persona": "Andy Bernard",
+    "title": "Pitch & Presentation Designer",
+    "model": "claude-sonnet-5.5",
+    "color": "#c0392b",
+    "team": "engineering",
+    "show": "The Office",
+    "summary": "Pitch decks, executive one-pagers, Word briefs and Excel trackers. Turns the team's findings into something you can present.",
+    "owns": "PowerPoint, Word, Excel deliverables",
+    "sources": [
+      "m365",
+      "files"
+    ],
+    "initials": "AB",
+    "avatar": "avatars/presentation-designer.svg"
+  },
+  {
+    "id": "qa-reviewer",
+    "persona": "Creed Bratton",
+    "title": "Quality Assurance",
+    "model": "gpt-5.5",
+    "color": "#7f8c8d",
+    "team": "quality",
+    "show": "The Office",
+    "summary": "Independent review of code, designs, numbers and deliverables, on a different model family from the author. Checks facts against sources and runs tests.",
+    "owns": "Review verdicts",
+    "sources": [
+      "code"
+    ],
+    "initials": "CB",
+    "avatar": "avatars/qa-reviewer.svg"
+  },
+  {
+    "id": "compliance-officer",
+    "persona": "Toby Flenderson",
+    "title": "HR & Compliance Gate",
+    "model": "claude-opus-5.5",
+    "color": "#95a5a6",
+    "team": "quality",
+    "show": "The Office",
+    "summary": "Reviews anything that leaves the building: outbound emails and Teams messages, MSX writes, and anything touching customer or personal data. Checks confidentiality, tone and policy.",
+    "owns": "Outbound and data-handling approvals",
+    "sources": [
+      "m365"
+    ],
+    "initials": "TF",
+    "avatar": "avatars/compliance-officer.svg"
+  }
+]

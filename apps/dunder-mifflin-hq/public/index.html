@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="dm-token" content="__DM_TOKEN__" />
+  <title>Dunder Mifflin HQ · Scranton Branch</title>
+  <link rel="icon" href="logo.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.svg" alt="" width="36" height="36" />
+      <div>
+        <h1>Dunder Mifflin <span>HQ</span></h1>
+        <p class="tagline">Limitless paper in a paperless world. And now, limitless help.</p>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Pages">
+      <a href="/" aria-current="page">Chat</a>
+      <a href="/team.html">Org chart</a>
+      <a href="/office.html">Office</a>
+    </nav>
+    <div class="weissman" title="Dundies handed out this session: one per finished request (just for fun)">
+      <span class="label">Dundies awarded</span>
+      <span id="dundies" class="value">0</span>
+    </div>
+  </header>
+
+  <main class="layout" id="layout">
+    <aside class="panel team pane" id="paneTeam" data-pane="left" data-state="open" aria-label="Team and conversations">
+      <div class="pane-head">
+        <h2>The Team</h2>
+        <span class="pane-actions">
+          <button type="button" class="icon-btn" data-pane-act="compress" aria-label="Compress team pane" title="Compress">«</button>
+          <button type="button" class="icon-btn" data-pane-act="hide" aria-label="Hide team pane" title="Hide">✕</button>
+        </span>
+      </div>
+      <div class="pane-body">
+        <ul id="roster" class="roster"></ul>
+        <h3>Conversations <label class="bg-toggle" title="Character-study runs are background downtime conversations"><input type="checkbox" id="showStudy" /> 📖 study runs</label></h3>
+        <ul id="sessions" class="sessions" aria-label="Saved conversations"></ul>
+      </div>
+    </aside>
+
+    <div class="resizer" id="rzLeft" role="separator" aria-orientation="vertical" aria-label="Resize team pane" tabindex="0"></div>
+
+    <section class="panel chat" aria-label="Chat with Michael">
+      <div class="chat-head">
+        <img class="avatar big" src="avatars/regional-manager.svg" alt="Michael Scott" id="leadAvatar" />
+        <div class="chat-title">
+          <h2>Michael Scott</h2>
+          <p class="muted">Regional Manager · hands your request to the right people</p>
+        </div>
+        <div class="chat-tools">
+          <div class="pane-toggles" role="group" aria-label="Panes">
+            <button type="button" id="toggleTeam" class="ghost" aria-pressed="true" title="Show or hide the team pane">Team</button>
+            <button type="button" id="toggleTarget" class="ghost" aria-pressed="true" title="Show or hide the connectors and activity pane">Workspace</button>
+            <button type="button" id="focusChat" class="ghost" aria-pressed="false" title="Hide both side panes to focus on the chat">Focus chat</button>
+          </div>
+          <button id="newParallel" class="ghost" type="button" title="Open a new conversation in a separate window">New parallel window</button>
+          <button id="newChat" class="ghost" type="button" title="Start a new conversation">New conversation</button>
+        </div>
+      </div>
+      <div id="messages" class="messages" aria-live="polite">
+        <div class="msg agent intro">
+          <div class="bubble">
+            <p>Welcome to Dunder Mifflin! I'm Michael, Regional Manager, and I'm basically your best friend now. Tell me what you need and I'll get the right person on it. The Scranton Branch handles your inbox, calendar, Teams, customers and MSX pipeline: Pam, Jim, Dwight, Angela and the gang. Dunder Mifflin Infinity handles the technical stuff: Oscar for Azure, infrastructure, databases and AI, Darryl for code, Andy for decks.</p>
+            <p class="muted">Reading your mail, chats, calendar, files and MSX is fine in every mode. Anything outbound (send, post, accept, write) always waits for your click. <b>Plan</b> is read-only, <b>Interactive</b> allows back-and-forth, <b>Autopilot</b> executes after you confirm it once for this conversation in this window.</p>
+          </div>
+        </div>
+      </div>
+      <div id="quickPrompts" class="quick-prompts" aria-label="Suggested requests">
+        <button type="button" class="chip-btn" data-prompt="Triage my inbox from the last 24 hours and tell me what needs a reply today.">📥 Triage my inbox</button>
+        <button type="button" class="chip-btn" data-prompt="What's on my calendar today and tomorrow? Flag conflicts and anything I need to prep for.">📅 My day</button>
+        <button type="button" class="chip-btn" data-prompt="Catch me up on my Teams chats and meetings since yesterday: decisions, asks and action items for me.">💬 Teams catch-up</button>
+        <button type="button" class="chip-btn" data-prompt="Prep me for my next customer meeting: account brief, open opportunities and talking points.">🤝 Prep my next call</button>
+        <button type="button" class="chip-btn" data-prompt="Run a pipeline hygiene review on my MSX opportunities and milestones: stale, slipping or missing next steps.">📈 Pipeline review</button>
+        <button type="button" class="chip-btn" data-prompt="Design a secure RAG architecture on Azure AI Foundry with Azure AI Search for a customer, with a diagram and sizing.">☁️ Ask Oscar (Azure &amp; AI)</button>
+        <button type="button" class="chip-btn" data-prompt="Call a conference-room brainstorm: give me fresh ideas to grow Azure AI adoption with my top accounts this quarter. Ryan leads; pick whoever else should be in the room.">💡 Brainstorm in the conference room</button>
+      </div>
+      <form id="composer" class="composer">
+        <section id="messageQueue" class="message-queue" aria-label="Michael's message queue" hidden>
+          <div><strong id="queueStatus" aria-live="polite"></strong>
+            <button id="pauseQueue" type="button" class="ghost">Pause queue</button>
+            <button id="resumeQueue" type="button" class="ghost" hidden>Resume queue</button>
+          </div>
+          <ol id="queueItems"></ol>
+          <p class="muted">Requests run one at a time with the mode and models selected when sent. Stop/failure pauses the queue; restart requires review and Resume. Revoke does not cancel already queued requests: remove them here.</p>
+        </section>
+        <ul id="attachPreview" class="attach-preview" aria-label="Attached reference files and screenshots" hidden></ul>
+        <p id="attachError" class="attach-error" role="alert" hidden></p>
+        <textarea id="input" rows="3" placeholder="Ask Michael anything… Enter sends · Shift+Enter newline · ↑ recalls your last prompt · attach reference files or screenshots"></textarea>
+        <div class="composer-actions">
+          <div class="mode speed" role="radiogroup" aria-label="Response speed" title="Quick: Michael answers directly. Auto: choose the smallest sufficient route. Team: use relevant specialists.">
+            <label><input type="radio" name="speed" value="quick" /> <span>⚡ Quick</span></label>
+            <label><input type="radio" name="speed" value="auto" checked /> <span>Auto</span></label>
+            <label><input type="radio" name="speed" value="team" /> <span>👥 Team</span></label>
+          </div>
+          <div class="mode" role="radiogroup" aria-label="Mode">
+            <label><input type="radio" name="mode" value="plan" checked /> <span>Plan (read-only)</span></label>
+            <label><input type="radio" name="mode" value="interactive" /> <span>Interactive</span></label>
+            <label class="danger"><input type="radio" name="mode" value="autopilot" /> <span>Autopilot 🚀</span></label>
+          </div>
+          <input id="attachInput" type="file" accept="image/png,image/jpeg,image/webp,.pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.json" multiple hidden />
+          <button id="attachBtn" type="button" class="ghost" title="Attach reference documents, text, code or screenshots (max 4 files, 10 MB each, 20 MB total)">📎 Attach files <span id="attachCount">0/4</span></button>
+          <select id="leadModel" title="Model for Michael (the lead)" aria-label="Lead model">
+            <option value="">Lead model: default</option>
+          </select>
+          <button id="stop" type="button" class="ghost" hidden>Stop</button>
+          <button id="send" type="submit" class="primary">Send to Michael</button>
+        </div>
+        <p class="muted attach-hint">Up to 4 files: PDF, DOCX, XLSX, PPTX, text, CSV, source code or screenshots. 10 MB each · 20 MB total. Documents use extracted text; for scans, charts or visual layout, also attach screenshots.</p>
+        <div id="autopilotState" class="autopilot-state" hidden>
+          <span>🚀 Autopilot approved: routine tools run without extra clicks in this conversation/window. Revoke applies to future requests; Stop cancels current work.</span>
+          <button id="revokeAutopilot" type="button" class="ghost">Revoke</button>
+        </div>
+        <details id="agentModels" class="agent-models" hidden>
+          <summary>Specialist models <span id="agentModelsCount" class="pill">0</span></summary>
+          <p class="muted">Optional per-agent overrides. Leave on default to let each agent use its own model.</p>
+          <div id="agentModelsList" class="agent-models-list"></div>
+        </details>
+      </form>
+    </section>
+
+    <div class="resizer" id="rzRight" role="separator" aria-orientation="vertical" aria-label="Resize workspace pane" tabindex="0"></div>
+
+    <aside class="panel target pane" id="paneTarget" data-pane="right" data-state="open" aria-label="Connectors and activity">
+      <div class="pane-head">
+        <h2>Workspace</h2>
+        <span class="pane-actions">
+          <button type="button" class="icon-btn" data-pane-act="compress" aria-label="Compress workspace pane" title="Compress">»</button>
+          <button type="button" class="icon-btn" data-pane-act="hide" aria-label="Hide workspace pane" title="Hide">✕</button>
+        </span>
+      </div>
+      <div class="pane-body">
+        <h3>Connectors</h3>
+        <ul id="connectors" class="connectors" aria-label="Data sources"><li class="muted">Loading…</li></ul>
+        <h3>Activity</h3>
+        <ul id="activity" class="activity"></ul>
+        <h3>Pending approvals/questions</h3>
+        <ul id="pending" class="activity"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <dialog id="confirm">
+    <form method="dialog">
+      <img class="avatar big" src="avatars/sales-lead.svg" alt="Dwight Schrute" />
+      <h2>Dwight needs confirmation</h2>
+      <p>"You are about to give a team of AI agents full authority over <b id="cTarget"></b>. As Assistant to the Regional Manager, I require written confirmation."</p>
+      <p class="muted">Type <code>AUTOPILOT</code> once for this conversation in this window. This authorizes tool actions needed for your requests, including Edge filters/clicks, file changes and connector writes, without repeated HQ prompts. Sign-in/MFA, managed approvals and confirmations required by services (such as MSX) still need you. Use Stop to cancel current work; Revoke requires confirmation again for future requests.</p>
+      <input id="cInput" autocomplete="off" aria-label="Confirmation" />
+      <menu>
+        <button value="cancel" class="ghost">Cancel</button>
+        <button id="cOk" value="ok" class="primary danger-btn" disabled>Enable autopilot</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="deleteDlg" aria-labelledby="deleteTitle">
+    <form method="dialog">
+      <h2 id="deleteTitle">Delete conversation?</h2>
+      <p>Delete <b id="deleteName"></b>?</p>
+      <p class="muted">Removes HQ-local history and images. Copilot runtime transcripts may remain.</p>
+      <p id="deleteError" class="attach-error" role="alert" hidden></p>
+      <menu>
+        <button value="cancel" class="ghost">Cancel</button>
+        <button id="deleteOk" value="ok" class="primary danger-btn">Delete</button>
+      </menu>
+    </form>
+  </dialog>
+  <script src="app.js" type="module"></script>
+</body>
+</html>

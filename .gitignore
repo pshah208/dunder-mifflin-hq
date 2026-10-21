@@ -1,0 +1,24 @@
+node_modules/
+.playwright-mcp/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+.npmrc
+.dunder-mifflin-hq/
+.copilot/
+playwright-report/
+test-results/
+snap*.yml
+*.tmp
+*.local.json
+*.log
+copilot-session-*.md
+# Generated decks/docs from presentation-designer; may contain customer data
+out/
+# Your own avatar images (only images you have the right to use)
+apps/dunder-mifflin-hq/public/avatars/custom/*
+!apps/dunder-mifflin-hq/public/avatars/custom/.gitkeep

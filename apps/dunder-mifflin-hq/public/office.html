@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="dm-token" content="__DM_TOKEN__" />
+  <title>Office · Dunder Mifflin HQ</title>
+  <link rel="icon" href="logo.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="office-page">
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.svg" alt="" width="36" height="36" />
+      <div>
+        <h1>Dunder Mifflin <span>HQ</span></h1>
+        <p class="tagline">Scranton paper people, Infinity builders and one very involved regional manager.</p>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Pages">
+      <a href="/">Chat</a>
+      <a href="/team.html">Org chart</a>
+      <a href="/office.html" aria-current="page">Office</a>
+    </nav>
+    <div class="weissman"><span class="label">Working now</span><span id="workingCount" class="value">0</span></div>
+  </header>
+
+  <main class="office">
+    <div class="office-bar">
+      <span id="liveStatus" class="live-pill idle">● Team idle</span>
+      <span class="muted office-hint">Send a message from <a href="/" target="_blank" rel="noopener">Chat</a> (open it side by side) and watch the team get to work.</span>
+      <span class="spacer"></span>
+      <button id="demoBtn" class="ghost" type="button">▶ Play demo</button>
+    </div>
+
+    <div class="stage-wrap">
+      <div class="stage" id="stage">
+        <svg id="world" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Isometric office with Scranton Branch, the Dunder Mifflin Infinity warehouse lab, Break Room and Café Disco"></svg>
+        <div class="overlay" id="overlay" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <section class="office-feed" aria-label="Activity">
+      <h3>What's happening</h3>
+      <ol id="feed"></ol>
+    </section>
+    <section class="dundies-board" aria-label="The Dundies">
+      <h3>🏆 The Dundies</h3>
+      <p class="dundie-sub muted" id="dundieSub">Awarded from your 👍/👎, replies you used as written, and Toby's approved vs rejected verdicts. Recent work counts more.</p>
+      <ol class="dundie-list" id="dundieList"></ol>
+      <table class="dundie-table" id="dundieTable" hidden>
+        <thead><tr><th>Agent</th><th class="num">Score</th><th class="num">Reliability</th><th class="num">👍</th><th class="num">👎</th><th class="num">📋 Used</th><th class="num">Toby ✅/⛔</th><th class="num">Streak</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+    <p class="org-note">Original isometric illustration inspired by NBC's <i>The Office</i>. Fan-made; not affiliated with NBCUniversal.
+      Agents with a green gem are working on your request right now; the rest may drift to the Break Room, water cooler or Café Disco for a bounded decorative break.</p>
+  </main>
+  <script src="nav.js" type="module"></script>
+  <script src="office.js" type="module"></script>
+</body>
+</html>

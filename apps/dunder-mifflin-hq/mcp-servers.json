@@ -1,0 +1,280 @@
+{
+  "$comment": "MCP servers attached to every HQ session. readOnlyTools lists tools HQ treats as side-effect free even when the server does not annotate them (\"*\" = all); they run in Plan mode and never need a click. Other tools need per-action approval in Interactive; approved Autopilot work uses conversation-scoped consent, subject to managed approvals, Azure restrictions and service confirmations. ${HOME} and ${env:NAME} are expanded. A server is skipped (and shown as unavailable in /api/connectors) when a path in requiresPaths or a variable in requiresEnv is missing. Override the whole file with DM_MCP_CONFIG=<path>. confirmedTools are write tools whose server shows the human a full preview and asks for confirmation itself (MCP elicitation, fail-closed); HQ shows that card instead of adding its own click. skillDirectories are loaded into every session when the connector is available. discover: { NAME: [candidate paths] } uses the first one that exists as ${var:NAME}. auth: { type: 'azure-cli', tenant, resource } sends the user's own Azure CLI token as a Bearer header (time-boxed; the connector shows 'sign-in needed' with a Sign in button when it fails).",
+  "servers": {
+    "workiq": {
+      "label": "Microsoft 365 (WorkIQ)",
+      "provides": [
+        "Outlook email",
+        "Calendar",
+        "Teams chats",
+        "Teams meetings & transcripts",
+        "OneDrive",
+        "SharePoint"
+      ],
+      "usedBy": [
+        "office-administrator",
+        "account-strategist",
+        "relationship-manager",
+        "communications",
+        "summarizer",
+        "product-manager",
+        "presentation-designer",
+        "cloud-ai-architect",
+        "compliance-officer"
+      ],
+      "readOnlyTools": [
+        "ask",
+        "fetch",
+        "fetch_blob",
+        "retrieve",
+        "search_paths",
+        "get_schema",
+        "list_agents",
+        "get_debug_link"
+      ],
+      "config": {
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "@microsoft/workiq@latest",
+          "mcp"
+        ],
+        "tools": [
+          "*"
+        ]
+      }
+    },
+    "msx": {
+      "label": "MSX (Dynamics 365 CRM)",
+      "provides": [
+        "Accounts",
+        "Opportunities",
+        "Milestones",
+        "Tasks & HoK activities",
+        "Deal teams",
+        "Pipeline",
+        "Azure consumption",
+        "Customer360 view metadata"
+      ],
+      "usedBy": [
+        "sales-lead",
+        "account-strategist",
+        "office-administrator",
+        "finance-analyst",
+        "renewals-desk",
+        "relationship-manager"
+      ],
+      "readOnlyTools": [
+        "msx_auth_status",
+        "get_account_team",
+        "get_activities",
+        "get_deals",
+        "open_msx_record",
+        "get_pipeline_summary",
+        "suggest_top_opportunities",
+        "get_milestones",
+        "get_opportunity_details",
+        "search_opportunities",
+        "search_my_accounts_opportunities",
+        "get_account_overview",
+        "find_opportunities_by_product",
+        "get_territory_overview",
+        "get_opportunity_solutions",
+        "get_opportunity_distribution",
+        "dataverse_query",
+        "dataverse_fetchxml",
+        "quota_consumption",
+        "get_azure_consumption"
+      ],
+      "confirmedTools": [
+        "dataverse_write"
+      ],
+      "skillDirectories": [
+        "${env:DM_MSX_MCP_DIR|${HOME}/.copilot/installed-plugins/msx-mcp/msx-mcp}/skills"
+      ],
+      "requiresPaths": [
+        "${env:DM_MSX_MCP_DIR|${HOME}/.copilot/installed-plugins/msx-mcp/msx-mcp}/scripts/bootstrap.mjs"
+      ],
+      "config": {
+        "type": "stdio",
+        "command": "node",
+        "args": [
+          "scripts/bootstrap.mjs"
+        ],
+        "workingDirectory": "${env:DM_MSX_MCP_DIR|${HOME}/.copilot/installed-plugins/msx-mcp/msx-mcp}",
+        "tools": [
+          "*"
+        ]
+      }
+    },
+    "msxi-snap": {
+      "label": "MSXi Snap (ACR, MACC, milestone analytics)",
+      "provides": [
+        "ACR trends & movers",
+        "ACR by service/subscription",
+        "MACC burn-down",
+        "Commitment coverage",
+        "Milestone analytics",
+        "Billed revenue",
+        "Pipeline signals"
+      ],
+      "usedBy": [
+        "finance-analyst",
+        "sales-lead",
+        "renewals-desk",
+        "account-strategist"
+      ],
+      "readOnlyTools": [
+        "*"
+      ],
+      "discover": {
+        "MSXI_SNAP_EXE": [
+          "${env:DM_MSXI_SNAP_EXE}",
+          "${HOME}/Downloads/msxi-snap-desktop-windows-arm64.exe",
+          "${HOME}/Downloads/msxi-snap-desktop-windows-x64.exe",
+          "${HOME}/Downloads/msxi-snap-desktop-windows-amd64.exe",
+          "${env:LOCALAPPDATA|${HOME}/AppData/Local}/Programs/MSXi Snap/msxi-snap.exe",
+          "${env:LOCALAPPDATA|${HOME}/AppData/Local}/Microsoft/MSXi Snap/msxi-snap.exe"
+        ]
+      },
+      "discoverHint": "install MSXi Snap or set DM_MSXI_SNAP_EXE",
+      "requiresPaths": [
+        "${env:DM_MSXI_SNAP_DATA_DIR|${env:LOCALAPPDATA|${HOME}/AppData/Local}/Microsoft/MSXi Snap}/msxi-snap.db"
+      ],
+      "config": {
+        "type": "stdio",
+        "command": "${var:MSXI_SNAP_EXE}",
+        "args": [
+          "mcp",
+          "--data-dir",
+          "${env:DM_MSXI_SNAP_DATA_DIR|${env:LOCALAPPDATA|${HOME}/AppData/Local}/Microsoft/MSXi Snap}"
+        ],
+        "tools": [
+          "*"
+        ],
+        "timeout": 120000
+      }
+    },
+    "powerbi-remote": {
+      "label": "Power BI (MSXi / MSA semantic models)",
+      "provides": [
+        "ACR (MSA, per account)",
+        "MSXi reports",
+        "DAX queries",
+        "Report & visual data"
+      ],
+      "usedBy": [
+        "finance-analyst",
+        "sales-lead",
+        "renewals-desk"
+      ],
+      "readOnlyTools": [
+        "*"
+      ],
+      "auth": {
+        "type": "azure-cli",
+        "tenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
+        "resource": "https://api.fabric.microsoft.com"
+      },
+      "signIn": {
+        "hint": "sign in with your @microsoft.com account: az login --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47 (or press Sign in)"
+      },
+      "config": {
+        "type": "http",
+        "url": "https://api.fabric.microsoft.com/v1/mcp/powerbi",
+        "tools": [
+          "*"
+        ],
+        "timeout": 180000
+      }
+    },
+    "powerbi-browser": {
+      "label": "Microsoft Edge (Power BI & Customer360)",
+      "provides": [
+        "Power BI report pages",
+        "Slicers, toggles & filters",
+        "Visible report values",
+        "MSX Customer360 records & views"
+      ],
+      "usedBy": [
+        "finance-analyst",
+        "sales-lead"
+      ],
+      "readOnlyTools": [
+        "browser_snapshot",
+        "browser_take_screenshot"
+      ],
+      "discover": {
+        "EDGE_EXE": [
+          "${env:DM_EDGE_EXE}",
+          "${env:ProgramFiles(x86)|C:/Program Files (x86)}/Microsoft/Edge/Application/msedge.exe",
+          "${env:ProgramFiles|C:/Program Files}/Microsoft/Edge/Application/msedge.exe",
+          "${env:LOCALAPPDATA|${HOME}/AppData/Local}/Microsoft/Edge/Application/msedge.exe"
+        ]
+      },
+      "discoverHint": "install Microsoft Edge or set DM_EDGE_EXE",
+      "requiresPaths": [
+        "${var:HQ_APP_DIR}/node_modules/@playwright/mcp/cli.js"
+      ],
+      "signIn": {
+        "hint": "Ask Angela to open your report or Dwight to open Customer360 in Edge, then sign in manually in that window. This dedicated HQ profile remembers your sign-in."
+      },
+      "config": {
+        "type": "stdio",
+        "command": "node",
+        "args": [
+          "${var:HQ_APP_DIR}/node_modules/@playwright/mcp/cli.js",
+          "--browser",
+          "msedge",
+          "--executable-path",
+          "${var:EDGE_EXE}",
+          "--user-data-dir",
+          "${env:DM_EDGE_PROFILE_DIR|${HOME}/.dunder-mifflin-hq/browser/edge-powerbi}",
+          "--no-webmcp",
+          "--codegen",
+          "none",
+          "--output-dir",
+          "${env:DM_DATA_DIR|${HOME}/.dunder-mifflin-hq}/browser/output"
+        ],
+        "tools": [
+          "browser_navigate",
+          "browser_navigate_back",
+          "browser_snapshot",
+          "browser_take_screenshot",
+          "browser_click",
+          "browser_select_option",
+          "browser_fill_form",
+          "browser_type",
+          "browser_press_key",
+          "browser_hover",
+          "browser_wait_for",
+          "browser_tabs",
+          "browser_close"
+        ],
+        "timeout": 120000
+      }
+    },
+    "ms-learn": {
+      "label": "Microsoft Learn docs",
+      "provides": [
+        "Azure, data and AI documentation"
+      ],
+      "usedBy": [
+        "cloud-ai-architect",
+        "automation-engineer",
+        "qa-reviewer"
+      ],
+      "readOnlyTools": [
+        "*"
+      ],
+      "config": {
+        "type": "http",
+        "url": "https://learn.microsoft.com/api/mcp",
+        "tools": [
+          "*"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "dunder-mifflin-hq",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Office-themed local web UI to chat with a day-to-day operations agent team (GitHub Copilot SDK).",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test --test-concurrency=1"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "officeparser": "8.1.1",
+    "yauzl": "3.4.0",
+    "@playwright/mcp": "0.0.83",
+    "@github/copilot-sdk": "^1.0.22"
+  }
+}

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="dm-token" content="__DM_TOKEN__" />
+  <title>Org chart · Dunder Mifflin HQ</title>
+  <link rel="icon" href="logo.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.svg" alt="" width="36" height="36" />
+      <div>
+        <h1>Dunder Mifflin <span>HQ</span></h1>
+        <p class="tagline">One Regional Manager. Two teams. Zero tolerance for wasted paper.</p>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Pages">
+      <a href="/">Chat</a>
+      <a href="/team.html" aria-current="page">Org chart</a>
+      <a href="/office.html">Office</a>
+    </nav>
+    <div class="weissman"><span class="label">Agents</span><span id="count" class="value">–</span></div>
+  </header>
+
+  <main class="org" id="org">
+    <p class="org-intro">Michael routes every request automatically. The <b>Scranton Branch</b> (sales &amp; customer expertise) knows your
+      inbox, calendar, Teams, customers and MSX pipeline. <b>Dunder Mifflin Infinity</b> (engineering &amp; product) brings the
+      technical depth: Azure, infrastructure, databases, AI, code and decks. <b>Creed</b> and <b>Toby</b> review work before it ships
+      or leaves the building. Every agent picks its own model.
+      Meetings and brainstorms happen in the <b>conference room</b>: Michael calls in the right people, and <b>Ryan</b> leads the ideas.</p>
+    <div id="leadSlot"></div>
+    <div class="vline" aria-hidden="true"></div>
+    <section class="branches">
+      <div class="branch sales">
+        <h2>📄 Scranton Branch</h2>
+        <p>Sales &amp; Customer · inbox, calendar, Teams, accounts and MSX</p>
+        <div class="grid-cards" id="salesLead"></div>
+        <div class="grid-cards staff" id="sales"></div>
+      </div>
+      <div class="branch qa">
+        <h2>🛡️ Quality Gates</h2>
+        <p>Independent review on a different model family, and a compliance check on anything outbound</p>
+        <div class="grid-cards" id="quality"></div>
+      </div>
+      <div class="branch infinity">
+        <h2>♾️ Dunder Mifflin Infinity</h2>
+        <p>Engineering &amp; Product · Azure, infrastructure, databases, AI, code and decks</p>
+        <div class="grid-cards" id="engLead"></div>
+        <div class="grid-cards staff" id="engineering"></div>
+      </div>
+    </section>
+    <section class="flow" aria-label="Typical request flow">
+      <h2>How a request flows</h2>
+      <ol id="flow"></ol>
+    </section>
+    <section class="connectors-card study-panel" id="study" aria-labelledby="studyTitle" hidden>
+      <h2 id="studyTitle">📖 Character study (downtime)</h2>
+      <p class="muted">When <b>nobody is working</b>, a few agents read public pages about their own character from <i>The Office</i> once a day
+        and bring back short notes in their own words. New original lines show up in their Office banter. Notes never change how agents
+        do real work, and study runs can't touch your mail, Teams, files or MSX: they only read public web pages. Each study uses a few premium requests.</p>
+      <div class="study-controls">
+        <label><input type="checkbox" id="studyEnabled" /> Study daily when free</label>
+        <label>From <input type="time" id="studyTime" /></label>
+        <label>Agents per study <select id="studyPerRun"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+        <button type="button" id="studyNow" class="ghost">Study now</button>
+        <span id="studySaved" class="muted" aria-live="polite"></span>
+      </div>
+      <div class="study-progress"><div class="study-bar" aria-hidden="true"><span id="studyBarFill"></span></div><span id="studyProgress" class="muted"></span></div>
+      <p id="studyNext" class="muted"></p>
+      <p id="studyStatus" class="muted" aria-live="polite"></p>
+    </section>
+    <section class="connectors-card" aria-label="Data sources">
+      <h2>Data sources</h2>
+      <ul id="connectors" class="connectors"></ul>
+    </section>
+    <p class="org-note">Avatars are original illustrations inspired by characters from NBC's <i>The Office</i>; no photos or stills are redistributed.
+      To use your own image, drop <code>&lt;agent-id&gt;.png</code> into <code>public/avatars/custom/</code> (only images you have the right to use).
+      Fan-made; not affiliated with NBCUniversal.</p>
+  </main>
+  <script src="nav.js" type="module"></script>
+  <script src="team.js" type="module"></script>
+</body>
+</html>
