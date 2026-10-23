@@ -385,8 +385,8 @@ export function isReadOnlyMcpRequest(request, readOnlyTools = activeReadOnlyTool
   if (request?.kind !== "mcp") return false;
   const server = String(request.serverName || "");
   const list = readOnlyTools?.[server];
-  // A generic browser cannot know whether a click changes a filter or publishes a report.
-  if (server !== "powerbi-browser" && request.readOnly === true) return true;
+  // A generic browser (any *-browser connector) cannot know whether a click changes a filter or publishes content.
+  if (!/-browser$/.test(server) && request.readOnly === true) return true;
   if (!server || !Array.isArray(list)) return false;
   let tool = String(request.toolName || "");
   if (tool.startsWith(`${server}-`)) tool = tool.slice(server.length + 1);

@@ -152,6 +152,17 @@ MSX sign-in/MFA and record access still depend on your own account; the agent ca
 Supply your own Customer360 view link in the conversation; no organization-specific view is bundled.
 The read-only workflow and metadata-discovery fallback are in [Dwight's instructions](.github/agents/sales-lead.agent.md).
 
+### Seismic internal references through Edge
+
+Ask Michael to have **Andy** find internal references in Seismic, for example
+"find the latest approved Azure AI pitch deck in Seismic". Andy opens
+[microsoft.seismic.com](https://microsoft.seismic.com/apps/home) (or a Seismic link you supply) in his own
+dedicated HQ Edge profile, uses Seismic's visible search and filters, and returns titles, content type,
+owner, last-updated date, visible sharing labels and links. It is read-only: no downloads, sharing,
+LiveSend or edits. Sign in manually in that Edge window the first time; the profile remembers it.
+Because the Seismic window is separate, it can run alongside Angela's and Dwight's browser work.
+Internal-only content is flagged and kept out of customer-facing output unless its label allows sharing.
+
 ## Quick start
 
 ```powershell

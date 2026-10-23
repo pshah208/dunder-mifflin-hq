@@ -255,6 +255,69 @@
         "timeout": 120000
       }
     },
+    "seismic-browser": {
+      "label": "Microsoft Edge (Seismic)",
+      "provides": [
+        "Seismic internal references",
+        "Pitch decks & one-pagers",
+        "Battlecards & playbooks",
+        "Content search & metadata"
+      ],
+      "usedBy": [
+        "presentation-designer"
+      ],
+      "readOnlyTools": [
+        "browser_snapshot",
+        "browser_take_screenshot"
+      ],
+      "discover": {
+        "EDGE_EXE": [
+          "${env:DM_EDGE_EXE}",
+          "${env:ProgramFiles(x86)|C:/Program Files (x86)}/Microsoft/Edge/Application/msedge.exe",
+          "${env:ProgramFiles|C:/Program Files}/Microsoft/Edge/Application/msedge.exe",
+          "${env:LOCALAPPDATA|${HOME}/AppData/Local}/Microsoft/Edge/Application/msedge.exe"
+        ]
+      },
+      "discoverHint": "install Microsoft Edge or set DM_EDGE_EXE",
+      "requiresPaths": [
+        "${var:HQ_APP_DIR}/node_modules/@playwright/mcp/cli.js"
+      ],
+      "signIn": {
+        "hint": "Ask Andy to open Seismic (https://microsoft.seismic.com/apps/home or your own Seismic link), then sign in manually in that Edge window. This dedicated HQ profile remembers your sign-in."
+      },
+      "config": {
+        "type": "stdio",
+        "command": "node",
+        "args": [
+          "${var:HQ_APP_DIR}/node_modules/@playwright/mcp/cli.js",
+          "--browser",
+          "msedge",
+          "--executable-path",
+          "${var:EDGE_EXE}",
+          "--user-data-dir",
+          "${env:DM_SEISMIC_PROFILE_DIR|${HOME}/.dunder-mifflin-hq/browser/edge-seismic}",
+          "--no-webmcp",
+          "--codegen",
+          "none",
+          "--output-dir",
+          "${env:DM_DATA_DIR|${HOME}/.dunder-mifflin-hq}/browser/seismic-output"
+        ],
+        "tools": [
+          "browser_navigate",
+          "browser_navigate_back",
+          "browser_snapshot",
+          "browser_take_screenshot",
+          "browser_click",
+          "browser_type",
+          "browser_press_key",
+          "browser_hover",
+          "browser_wait_for",
+          "browser_tabs",
+          "browser_close"
+        ],
+        "timeout": 120000
+      }
+    },
     "ms-learn": {
       "label": "Microsoft Learn docs",
       "provides": [

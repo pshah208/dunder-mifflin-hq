@@ -4,7 +4,7 @@
 
 Run HQ on a trusted **Windows workstation or an interactive Windows VM**, under your own user account.
 Node.js serves the UI and talks to GitHub Copilot; optional MCP servers connect to your authorized services.
-The browser-based Power BI and Customer360 workflows open **Microsoft Edge on the same machine**.
+The browser-based Power BI, Customer360 and Seismic workflows open **Microsoft Edge on the same machine**.
 
 The server binds to `127.0.0.1`, validates the Host header and uses a per-start token for its APIs.
 That token is an anti-cross-origin/local API control, **not multi-user authentication**.
@@ -23,7 +23,7 @@ Other platforms may run the core server, but the complete connector/Edge workflo
 | Node.js **22.13+** with npm; Node 24 recommended | Server, SDK and local document extraction |
 | PowerShell 7 | Commands in this guide |
 | GitHub Copilot access and CLI sign-in | Live agent requests and model access |
-| Microsoft Edge, for browser workflows | Visible report filters and Customer360 records |
+| Microsoft Edge, for browser workflows | Visible report filters, Customer360 records and Seismic content |
 | Optional, separately authorized connectors | Microsoft 365, MSX, MSXi Snap, Fabric and Microsoft Learn |
 
 Check installed tools:
@@ -107,6 +107,7 @@ prove access to a specific mailbox, report, dataset or CRM record.
 | `msxi-snap` | Optional Windows desktop snapshot tool, installed and synced separately. Set `DM_MSXI_SNAP_EXE` and, if needed, `DM_MSXI_SNAP_DATA_DIR`. Reports are only as fresh as the local snapshot. |
 | `powerbi-remote` | Optional Fabric MCP configuration for an authorized organizational identity. Requires Azure CLI and the correct tenant/resource permissions. Use the panel's Sign in action where appropriate. Model-query permissions differ from report-view permissions. |
 | `powerbi-browser` | Install Edge, then ask Angela to open your own Power BI report URL or Dwight to open your own Customer360 view URL. Complete sign-in/MFA manually in the dedicated HQ Edge window. |
+| `seismic-browser` | Install Edge, then ask Andy to open Seismic (`https://microsoft.seismic.com/apps/home` or your own Seismic link). It uses a separate profile (`DM_SEISMIC_PROFILE_DIR`, default `%USERPROFILE%\.dunder-mifflin-hq\browser\edge-seismic`). Sign in manually once; access follows your own Seismic permissions. Read-only: no downloads, sharing or edits. |
 | `ms-learn` | Documentation MCP endpoint. Network access is required. |
 
 MSX/MSXi and some Fabric configurations are organization-specific and may not be available to external users.

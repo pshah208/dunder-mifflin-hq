@@ -22,7 +22,7 @@ function learnedHtml(m) {
   </details>`;
 }
 
-const SOURCE_LABEL = { m365: "Microsoft 365", msx: "MSX", azure: "Azure", learn: "MS Learn", code: "Code", files: "Office files", routing: "Routing" };
+const SOURCE_LABEL = { m365: "Microsoft 365", msx: "MSX", azure: "Azure", learn: "MS Learn", code: "Code", files: "Office files", seismic: "Seismic", routing: "Routing" };
 
 function card(m, cls = "") {
   const sources = (m.sources || []).map(s => `<span class="chip src">${esc(SOURCE_LABEL[s] || s)}</span>`).join("");

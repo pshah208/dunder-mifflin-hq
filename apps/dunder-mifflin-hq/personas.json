@@ -203,11 +203,12 @@
     "color": "#c0392b",
     "team": "engineering",
     "show": "The Office",
-    "summary": "Pitch decks, executive one-pagers, Word briefs and Excel trackers. Turns the team's findings into something you can present.",
-    "owns": "PowerPoint, Word, Excel deliverables",
+    "summary": "Pitch decks, executive one-pagers, Word briefs and Excel trackers. Finds internal references in Seismic and turns the team's findings into something you can present.",
+    "owns": "PowerPoint, Word, Excel deliverables; Seismic internal references",
     "sources": [
       "m365",
-      "files"
+      "files",
+      "seismic"
     ],
     "initials": "AB",
     "avatar": "avatars/presentation-designer.svg"
