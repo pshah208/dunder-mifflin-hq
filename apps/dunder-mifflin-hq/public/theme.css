@@ -1,0 +1,64 @@
+:root { color-scheme: light; }
+.topbar { flex-wrap: wrap; gap: 12px 18px; }
+.brand, .brand > div { min-width: 0; }
+.nav { flex-wrap: wrap; max-width: 100%; }
+.theme-toggle { flex-shrink: 0; white-space: nowrap; }
+.theme-toggle[aria-pressed="true"] { border-color: var(--green); }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111720;
+  --panel: #1b2431;
+  --panel-2: #253142;
+  --line: #445269;
+  --text: #edf2f8;
+  --muted: #b8c3d2;
+  --green: #99c1ff;
+  --green-d: #28529a;
+  --danger: #ffaaa0;
+}
+:root[data-theme="dark"] body { background: radial-gradient(1200px 600px at 10% -10%, #23364e 0%, transparent 60%), var(--bg); }
+:root[data-theme="dark"] ::placeholder { color: var(--muted); opacity: 1; }
+:root[data-theme="dark"] .topbar { background: #1b2431f2; box-shadow: 0 2px 0 #8b743e; }
+:root[data-theme="dark"] :is(code, .bubble pre, textarea, select, input, .nav, .mode, .target-summary, .chip, .flow li, .msg-image) {
+  background: var(--panel-2);
+}
+:root[data-theme="dark"] :is(.session-item, .resources li, .qcard-preview, .msg.agent .bubble, .chip-btn, .connector, .study-controls input, .study-controls select) {
+  background: var(--panel);
+}
+:root[data-theme="dark"] :is(.session-item.active, .member.working, .workflow-item.selected, .run-state.running) { background: #263e60; }
+:root[data-theme="dark"] :is(.member .model, .chip, .card details) { color: var(--text); }
+:root[data-theme="dark"] :is(.pane-toggles button[aria-pressed="true"], .event.ok, .target-summary.set, .chip.model, .folder-badge) { color: var(--green); }
+:root[data-theme="dark"] :is(.activity li.fail, .autopilot-state, .folder-status.err) { color: var(--danger); }
+:root[data-theme="dark"] :is(button.primary, .fb-btn[aria-pressed="true"], .sim-label.on) { background: var(--green-d); color: #fff; }
+:root[data-theme="dark"] .danger-btn { background: #9c332e !important; border-color: #9c332e !important; }
+:root[data-theme="dark"] .composer { background: var(--panel); }
+:root[data-theme="dark"] .mode.speed { background: #203b32; border-color: #527d68; }
+:root[data-theme="dark"] .branch { background: var(--panel); }
+:root[data-theme="dark"] .branch.infinity { background: linear-gradient(180deg, #203b32, var(--panel) 40%); }
+:root[data-theme="dark"] .branch.sales { background: linear-gradient(180deg, #233958, var(--panel) 40%); }
+:root[data-theme="dark"] .staff { border-color: var(--line); }
+:root[data-theme="dark"] :is(.chip.src, .dundie) { background: #3a3223; color: #ffe2a0; border-color: #8b743e; }
+:root[data-theme="dark"] :is(.fb-toby.approved, .run-state.completed) { background: #203c2b; color: #a9e5b5; }
+:root[data-theme="dark"] :is(.fb-toby.rejected, .run-state.failed, .run-state.interrupted, .automation-page #error) { background: #482823; color: #ffb9b0; }
+:root[data-theme="dark"] .message-queue { border-color: var(--line); }
+:root[data-theme="dark"] .msg.agent .bubble { box-shadow: 0 1px 0 var(--line), 0 2px 6px #0003; }
+:root[data-theme="dark"] .attach-item .icon-btn { background: #1b2431ee; }
+:root[data-theme="dark"] :is(.folder-crumbs button:hover, .folder-crumbs button:focus-visible, .folder-item:hover, .folder-item[aria-selected="true"], .folder-item:focus-visible) { background: var(--panel-2); }
+:root[data-theme="dark"] a { color: var(--green); }
+:root[data-theme="dark"] .nav a { color: var(--muted); }
+:root[data-theme="dark"] .nav a:hover { color: var(--text); }
+:root[data-theme="dark"] .nav a[aria-current="page"] { color: #fff; }
+:root[data-theme="dark"] .live-pill { background: var(--panel); }
+:root[data-theme="dark"] .stage-wrap { background: radial-gradient(900px 500px at 50% 40%, #304156, #151e2a 70%); }
+:root[data-theme="dark"] .sim-label { background: #1b2431f2; border-color: var(--line); }
+:root[data-theme="dark"] .sim-label.on { background: var(--green-d); }
+:root[data-theme="dark"] .office-page .bubble { background: var(--panel); border-color: var(--line); box-shadow: 0 3px 10px #0006; }
+:root[data-theme="dark"] .office-page .bubble::after { border-top-color: var(--panel); }
+:root[data-theme="dark"] .office-page .bubble.camera { background: #111720; color: var(--text); }
+:root[data-theme="dark"] .office-page .bubble.camera::after { border-top-color: #111720; }
+@media (max-width: 600px) {
+  .topbar { padding: 12px; }
+  .topbar .brand { flex-basis: 100%; }
+  .topbar .nav { order: 1; }
+}

@@ -4,7 +4,7 @@ import { initWindowScope, getWindowSession, setWindowSession, withSession } from
 initWindowScope(sessionStorage, window);
 
 export function updateNavLinks(id = getWindowSession(sessionStorage)) {
-  document.querySelectorAll('a[href="/"], a[href^="/?"], a[href="/team.html"], a[href^="/team.html?"], a[href="/office.html"], a[href^="/office.html?"]').forEach(a => {
+  document.querySelectorAll('nav a[href="/"], nav a[href^="/?"], nav a[href="/team.html"], nav a[href^="/team.html?"], nav a[href="/office.html"], nav a[href^="/office.html?"], nav a[href="/automations.html"], nav a[href^="/automations.html?"]').forEach(a => {
     if (!a.dataset.ppBase) a.dataset.ppBase = a.getAttribute("href").split("?")[0];
     a.setAttribute("href", withSession(a.dataset.ppBase, id));
   });

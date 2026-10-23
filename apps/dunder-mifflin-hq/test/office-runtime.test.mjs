@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 import { findEndKey } from "../public/ui-logic.js";
 import { isMeetingSummary } from "../public/office-social.js";
+import { teamOf } from "../public/office-crossteam.js";
 
 test("Office uses real child lifecycle, preserves meeting identity and ignores specialist completion/text", async () => {
   const source = await readFile(new URL("../public/office.js", import.meta.url), "utf8");
@@ -38,4 +39,40 @@ test("Office uses real child lifecycle, preserves meeting identity and ignores s
   assert.ok(isMeetingSummary(run.active.get("new").summary));
   emit({ t: "end", code: 0 });
   assert.equal(sandbox.state.runs.size, 0);
+});
+
+test("physical meetings use one request's stakeholders, not unrelated work or desk locations", async () => {
+  const source = await readFile(new URL("../public/office.js", import.meta.url), "utf8");
+  const noop = () => {};
+  const sandbox = {
+    state: { busy: true, runs: new Map(), source: "live" }, scene: null, antic: null,
+    esc: String, teamOf, isMeetingSummary, performance: { now: () => 1000 },
+    lounge: { preempt: noop, onBreak: () => false },
+    sims: new Map(), inScene: () => false, inAntic: () => false, crossPlan: noop,
+    $: () => ({}), noteMeeting: ids => { sandbox.meeting = [...ids]; },
+    goTo: (s, x, y, pose) => { s.destination = [x, y, pose]; },
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(source.slice(source.indexOf("// ---------- Isometric helpers"), source.indexOf("// ---------- Sims")), sandbox);
+  vm.runInContext('for (const id of Object.keys(HOME)) sims.set(id, { m: { id } });', sandbox);
+  vm.runInContext(source.slice(source.indexOf("function plan()"), source.indexOf("// ---------- Meetings")), sandbox);
+  const run = (ids, study = false) => ({ busy: true, study, leadText: "", active: new Map(ids.map(id => [id, { agent: id, summary: "Task" }])),
+    summaries: new Map(ids.map(id => [id, "Task"])) });
+  sandbox.state.runs.set("sales-request", run(["finance-analyst"]));
+  sandbox.state.runs.set("technical-request", run(["cloud-ai-architect"]));
+  sandbox.plan();
+  assert.equal(sandbox.meeting.length, 0, "independent requests aren't invented into a meeting");
+  sandbox.state.runs.clear();
+  const shared = run(["finance-analyst", "cloud-ai-architect", "compliance-officer"]);
+  sandbox.state.runs.set("shared", shared);
+  sandbox.plan();
+  assert.equal(sandbox.meeting.length, 3, "accounting, engineering and review gather together");
+  assert.deepEqual(sandbox.sims.get("regional-manager").destination, [6, 1.88, "talk"]);
+  shared.active.delete("finance-analyst");
+  sandbox.plan();
+  assert.equal(sandbox.meeting.length, 3);
+  assert.equal(sandbox.sims.get("finance-analyst").active, false, "completed attendees aren't falsely shown as working");
+  shared.study = true;
+  sandbox.plan();
+  assert.equal(sandbox.meeting.length, 0, "character study keeps its own break-room choreography");
 });

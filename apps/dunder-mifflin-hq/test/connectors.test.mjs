@@ -170,7 +170,7 @@ test("session config enables the elicitation bridge and plugin skills", async ()
   const cfg = await buildSdkSessionConfig({ handlers: { onElicitationRequest: async () => ({ action: "decline" }) } });
   assert.equal(typeof cfg.onElicitationRequest, "function");
   const src = await readFile(path.resolve("server.mjs"), "utf8");
-  assert.match(src, /if \(ctx\.mode === "plan"\) return \{ action: "decline" \};/, "plan mode never confirms a write");
+  assert.match(src, /const onElicitationRequest[\s\S]*?if \(ctx\.mode === "plan"\) \{[^}]+return \{ action: "decline" \};\s*\}/, "plan mode never confirms a write");
   assert.match(src, /onPermissionRequest,\n?\s*onElicitationRequest,/);
   assert.ok(!/action: "accept"/.test(src.slice(src.indexOf("const onElicitationRequest"), src.indexOf("const onExitPlanModeRequest"))), "never auto-accepts");
   // Interactive mode must not stack an HQ click on top of the server's card, but Plan mode must still reject the write first.

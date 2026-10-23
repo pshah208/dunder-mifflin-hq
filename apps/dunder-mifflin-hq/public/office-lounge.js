@@ -98,7 +98,7 @@ export class Lounge {
     this.spots = o.spots || LOUNGE_SPOTS;
     this.rng = o.rng || Math.random;
     this.maxOnBreak = o.maxOnBreak ?? 5;
-    this.startChance = o.startChance ?? 0.1;
+    this.startChance = o.startChance ?? 0.35;
     this.minIdleMs = o.minIdleMs ?? 8000;
     this.cooldownMs = o.cooldownMs || [45000, 120000];
     this.initialDelayMs = o.initialDelayMs || [8000, 45000];
@@ -109,6 +109,7 @@ export class Lounge {
     this.visits = new Map();     // agentId -> { kind, stages, spots, idx, endAt, group }
     this.nextOk = new Map();     // agentId -> earliest time a new break may start
     this.idleSince = new Map();  // agentId -> when the agent last became idle
+    this.lastVisit = new Map();  // least-recently invited agents get the next outing
   }
 
   get occupancy() { return new Map(this.occ); }
@@ -193,11 +194,14 @@ export class Lounge {
       } else { this._finish(id, now); cmds.push({ type: "end", id, reason: "done" }); }
     }
 
-    if (this.visits.size < this.maxOnBreak && this.rng() < this.startChance) {
-      const candidates = agents.filter(a => !a.working && !a.walking && !this.visits.has(a.id) &&
-        now >= (this.nextOk.get(a.id) ?? Infinity) && now - (this.idleSince.get(a.id) ?? now) >= this.minIdleMs);
+    const candidates = agents.filter(a => !a.working && !a.walking && !this.visits.has(a.id) &&
+      now >= (this.nextOk.get(a.id) ?? Infinity) && now - (this.idleSince.get(a.id) ?? now) >= this.minIdleMs);
+    const overdue = candidates.some(a => now - this.nextOk.get(a.id) >= 15000);
+    if (this.visits.size < this.maxOnBreak && (this.rng() < this.startChance || overdue)) {
       if (candidates.length) {
-        const a = candidates[Math.floor(this.rng() * candidates.length) % candidates.length];
+        const oldest = Math.min(...candidates.map(a => this.lastVisit.get(a.id) ?? -Infinity));
+        const waiting = candidates.filter(a => (this.lastVisit.get(a.id) ?? -Infinity) === oldest);
+        const a = waiting[Math.floor(this.rng() * waiting.length) % waiting.length];
         const companion = this.visits.size + 1 < this.maxOnBreak && this.rng() < 0.42 ? this.pickCompanion(a.id, candidates) : null;
         const group = companion ? [a.id, companion.id].sort().join("+") : null;
         let pairKind = null;
@@ -213,6 +217,7 @@ export class Lounge {
             if (actor === a && this.kinds[kind].pair) pairKind = kind;
             spots.forEach(s => this.occ.set(s.id, actor.id));
             this.visits.set(actor.id, { kind, stages, spots, idx: 0, endAt: null, group });
+            this.lastVisit.set(actor.id, now);
             cmds.push({ type: "go", id: actor.id, spot: spots[0], pose: stages[0].pose, carry: null, stage: 0, group });
           }
         }

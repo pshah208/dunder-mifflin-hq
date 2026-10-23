@@ -8,10 +8,27 @@ import { createGrid, simDepth } from "./office-path.js";
 import { Antics, CAMERA } from "./office-antics.js";
 import { TEXT_CAP, buildAliases, isSocialRun, isReadTool, buildScene as buildSocialScene, feedNote, sceneTimeline, sceneEndAt, HUDDLE_SPOTS, isMeetingSummary, stripMeetingPrefix } from "./office-social.js";
 import { awardBadges, dundieListHtml, leaderboardRows, feedbackReaction } from "./office-dundies.js";
+import { captureOffice, restoreOffice, OFFICE_STATE_KEY } from "./office-continuity.js";
 
 const TOKEN = document.querySelector('meta[name="dm-token"]').content;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function reportOfficeError(error) {
+  let notice = $("#officeError");
+  if (!notice) {
+    notice = document.createElement("p");
+    notice.id = "officeError"; notice.className = "office-error"; notice.setAttribute("role", "alert");
+    document.body.prepend(notice);
+  }
+  notice.textContent = `Office rendering stopped: ${String(error?.message || error).slice(0, 240)}. Reload this page; if it persists, share this error.`;
+  notice.hidden = false;
+}
+addEventListener("error", event => {
+  if (/office(?:-[\w-]+)?\.js/.test(event.filename || "")) reportOfficeError(event.error || event.message);
+});
+addEventListener("unhandledrejection", event => {
+  if (/office(?:-[\w-]+)?\.js/.test(event.reason?.stack || "")) reportOfficeError(event.reason);
+});
 
 // ---------- Isometric helpers ----------
 const TW = 64, TH = 32;
@@ -466,6 +483,7 @@ function createSims() {
     const home = HOME[m.id]; if (!home) continue;
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("class", "sim pose-idle"); g._uid = uid++; g._depth = 0;
+    g.dataset.agent = m.id;
     g.innerHTML = simSvg(m);
     layer.appendChild(g);
     const label = document.createElement("div");
@@ -554,6 +572,7 @@ function onEvent(ev) {
         break;
       }
       run.active.set(ev.callId, { agent: ev.agent, summary: ev.summary || run.summaries.get(ev.agent) || "", background: ev.background, started: true });
+      run.summaries.set(ev.agent, ev.summary || run.summaries.get(ev.agent) || "");
       run.delegates += 1;
       run.lastDelegate = ev.agent;
       break;
@@ -622,7 +641,7 @@ function onEvent(ev) {
     }
   }
   state.busy = [...state.runs.values()].some(r => r.busy);
-  plan();
+  if (!state.replaying) plan();
   if (social !== null) requestScene(social);
 }
 const toolVerb = n => ({ view: "Reading", grep: "Searching", glob: "Looking for", powershell: "Running", edit: "Editing", create: "Writing" }[n] || `Using ${n}`);
@@ -699,7 +718,6 @@ function plan() {
   const leadText = activeRuns.map(r => r.leadText).filter(Boolean).join(" ").slice(-400);
   const lastDelegate = [...activeRuns].reverse().map(r => r.lastDelegate).find(Boolean) || null;
   if (scene && (state.busy || scene.ids.some(id => working.has(id)))) endScene(false); // real work always beats a chat
-  if (antic && antic.bit.cast.some(id => working.has(id) || (id === "regional-manager" && state.busy))) endAntic(false); // and beats a joke
   // Meetings and brainstorms: everyone Michael called in walks to the conference room, whatever their team.
   const studying = new Set();
   for (const r of activeRuns) if (r.study) for (const a of r.active.values()) if (sims.has(a.agent)) studying.add(a.agent);
@@ -707,6 +725,14 @@ function plan() {
   state.studying = studying;
   let studyIdx = 0;
   const meeting = new Set([...working.entries()].filter(([id, sum]) => id !== "regional-manager" && !studying.has(id) && isMeetingSummary(sum)).map(([id]) => id));
+  // Keep each request's stakeholders together through Michael's synthesis, including finished delegates.
+  // Team identity is independent of desk location (Oscar and Andy sit on the Scranton floor).
+  for (const run of activeRuns) {
+    if (!run.busy || run.study) continue;
+    const participants = [...run.summaries.keys()].filter(id => id !== "regional-manager" && sims.has(id));
+    if (new Set(participants.map(teamOf).filter(Boolean)).size > 1) participants.forEach(id => meeting.add(id));
+  }
+  if (antic && antic.bit.cast.some(id => working.has(id) || meeting.has(id) || (id === "regional-manager" && state.busy))) endAntic(false);
   noteMeeting(meeting);
   let confIdx = 0;
   const confSeat = () => CONF_SEATS[confIdx++ % CONF_SEATS.length];
@@ -723,14 +749,16 @@ function plan() {
     s.active = working.has(id) || (id === "regional-manager" && state.busy);
     s.summary = working.get(id) || "";
     if (s.active) lounge.preempt(id, performance.now()); // real work always beats a break and frees the seat
+    else if (meeting.has(id)) lounge.preempt(id, performance.now());
     if (!lounge.onBreak(id)) s.carry = null;
     if (id === "regional-manager") continue;
     if (inScene(id) || inAntic(id)) continue; // social scene / antic members stay put; real work already cancelled them above
     const [hx, hy, pose] = HOME[id];
     const room = roomOf(hx);
-    if (working.has(id)) {
+    if (meeting.has(id)) {
+      goTo(s, ...confSeat(), "talk");
+    } else if (working.has(id)) {
       if (studying.has(id)) goTo(s, ...STUDY_SPOTS[studyIdx++ % STUDY_SPOTS.length], "read");
-      else if (meeting.has(id)) goTo(s, ...confSeat(), "talk");
       else if (huddleRooms.includes(room) && HUDDLE.has(id)) {
         // A Scranton huddle during a meeting just joins the conference table.
         const [sx, sy] = meeting.size && room === "sales" ? confSeat() : SEATS[room][seatIdx[room]++ % SEATS[room].length];
@@ -813,7 +841,7 @@ function flushBriefing() {
   const ids = [...new Set(cross.queue.splice(0))].filter(id => cross.working.includes(id));
   if (!ids.length) return;
   const names = ids.map(nameOf);
-  logFeed("🤝", `<b>Michael</b> walked to the warehouse to brief ${esc(names.join(", "))}`);
+  logFeed("🤝", `<b>Michael</b> is heading over to brief ${esc(names.join(", "))}`);
   if (!crossOk()) return;
   const [hi, reply] = pickGreeting(ids);
   if (hi) { crossSay(hi.id, hi.text, 3200); crossLater(() => crossSay(reply.id, reply.text, 3200), 2400); }
@@ -941,7 +969,7 @@ setInterval(() => {
   const now = performance.now();
   if (!antic) {
     if (scene || pendingScene) return;
-    const agents = [...sims.values()].map(s => ({ id: s.m.id, idle: !s.active && !s.path.length && !lounge.onBreak(s.m.id) && !inScene(s.m.id) && now > s.bubbleUntil }));
+    const agents = [...sims.values()].map(s => ({ id: s.m.id, idle: !s.active && !meetingState.ids.has(s.m.id) && !s.path.length && !lounge.onBreak(s.m.id) && !inScene(s.m.id) && now > s.bubbleUntil }));
     const pick = antics.tick(now, agents, { teamBusy: state.busy });
     if (pick) startAntic(pick, now);
     return;
@@ -960,7 +988,7 @@ setInterval(() => {
 }, 400);
 
 // Idle life: occasional, capacity-limited Café/couch breaks (see office-lounge.js). Paused while the tab is hidden.
-const loungeAgents = () => [...sims.values()].map(s => ({ id: s.m.id, working: s.active || inAntic(s.m.id), walking: s.path.length > 0 }));
+const loungeAgents = () => [...sims.values()].map(s => ({ id: s.m.id, working: s.active || meetingState.ids.has(s.m.id) || inScene(s.m.id) || inAntic(s.m.id), walking: s.path.length > 0 }));
 function applyLounge(cmds) {
   for (const c of cmds) {
     const s = sims.get(c.id); if (!s) continue;
@@ -1027,6 +1055,15 @@ function frame(now) {
       else { s.x += dx / dist * step; s.y += dy / dist * step; }
       const sdx = (dx - dy); if (Math.abs(sdx) > 0.01) s.facing = sdx > 0 ? 1 : -1;
     }
+  }
+  paint(now);
+  requestAnimationFrame(frame);
+}
+
+// SVG nodes default to (0, 0). First paint must not depend on an animation callback,
+// which an embedded, background or paused browser may defer indefinitely.
+function paint(now) {
+  for (const s of sims.values()) {
     const walking = s.path.length > 0;
     const cls = `sim pose-${walking ? "walk" : s.pose}${s.active ? " active" : ""}${s.carry ? ` carry-${s.carry}` : ""}`;
     if (s.g.getAttribute("class") !== cls) s.g.setAttribute("class", cls);
@@ -1059,7 +1096,6 @@ function frame(now) {
   const kids = [...layer.children].sort((a, b) => a._depth - b._depth);
   const order = kids.map(k => k._uid).join("|");
   if (order !== lastOrder) { for (const k of kids) layer.appendChild(k); lastOrder = order; }
-  requestAnimationFrame(frame);
 }
 
 // ---------- Live stream ----------
@@ -1081,16 +1117,14 @@ async function connectLive() {
         if (ev.t === "ping") continue;
         if (ev.t === "snapshot") {
           if (Array.isArray(ev.activeRuns)) {
-            for (const r of state.runs.values()) r.observed = false; // events missed across a reconnect gap must not make a run look social
             const known = new Set(ev.activeRuns.map(r => r.runId));
             for (const key of [...state.runs.keys()]) {
               if (!known.has(key) && !(state.source === "demo" && key === DEMO_RUN)) state.runs.delete(key); // the server knows nothing about the local demo
             }
             for (const run of ev.activeRuns) {
-              if (!state.runs.has(run.runId)) state.runs.set(run.runId, makeRun(true));
+              state.runs.set(run.runId, makeRun(true));
             }
             state.busy = [...state.runs.values()].some(r => r.busy);
-            plan();
           }
           if ((ev.events || []).length) {
             stopDemo();
@@ -1101,6 +1135,8 @@ async function connectLive() {
             stopDemo();
             state.source = "live";
           }
+          for (const run of state.runs.values()) run.observed = false;
+          plan(); // Reconcile once, not through every stale intermediate target in the replay.
           continue;
         }
         if (ev.t === "feedback") { onFeedback(ev); continue; }
@@ -1136,10 +1172,11 @@ const DEMO = [
   [44.9, { t: "tool_end", callId: "m4", ok: true }], [45.2, { t: "tool_end", callId: "m5", ok: true }],
   [46.5, { t: "end" }],
 ];
-let demoTimers = [];
+let demoTimers = [], demoStartedAt = null;
 function stopDemo() {
   if (!demoTimers.length) return;
   demoTimers.forEach(clearTimeout); demoTimers = [];
+  demoStartedAt = null;
   $("#demoBtn").textContent = "▶ Play demo";
   if (state.source === "demo") { state.source = "live"; onEvent({ t: "end" }); }
 }
@@ -1147,24 +1184,80 @@ $("#demoBtn").addEventListener("click", async () => {
   if (demoTimers.length) return stopDemo();
   const st = await fetch("/api/status", { headers: { "X-DM-Token": TOKEN } }).then(r => r.json()).catch(() => ({}));
   if (st.busy) { logFeed("ℹ️", "The branch is working on a real request — the demo will wait."); return; }
+  playDemo();
+});
+function playDemo(elapsed = 0) {
   state.source = "demo";
+  demoStartedAt = performance.now() - elapsed;
   $("#demoBtn").textContent = "■ Stop demo";
-  demoTimers = DEMO.map(([t, ev]) => setTimeout(() => {
+  state.replaying = true;
+  try { for (const [t, ev] of DEMO) if (t * 1000 < elapsed) onEvent(ev); }
+  finally { state.replaying = false; }
+  plan();
+  demoTimers = DEMO.filter(([t]) => t * 1000 >= elapsed).map(([t, ev]) => setTimeout(() => {
     if (state.source !== "demo") return;
     onEvent(ev);
-    if (ev.t === "end") { demoTimers = []; state.source = "live"; $("#demoBtn").textContent = "▶ Replay demo"; }
-  }, t * 1000));
-});
+    if (ev.t === "end") { demoTimers = []; demoStartedAt = null; state.source = "live"; $("#demoBtn").textContent = "▶ Replay demo"; }
+  }, t * 1000 - elapsed));
+}
+
+let continuityWarned = false;
+function continuityError(error) {
+  if (!continuityWarned) {
+    console.warn("Office scene continuity unavailable:", error);
+    logFeed("!", "Office positions could not be saved/restored in this tab. Browser storage may be unavailable.");
+  }
+  continuityWarned = true;
+}
+function saveOffice() {
+  if (!sims.size) return;
+  try {
+    const now = performance.now();
+    const saved = captureOffice({ sims, lounge, scene, antic, antics, banter }, now);
+    saved.demoElapsed = demoStartedAt === null ? null : now - demoStartedAt;
+    sessionStorage.setItem(OFFICE_STATE_KEY, JSON.stringify(saved));
+  } catch (error) { continuityError(error); }
+}
+function resumeOffice() {
+  try {
+    const raw = sessionStorage.getItem(OFFICE_STATE_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    ({ scene, antic } = restoreOffice(saved, { sims, lounge, antics, banter }, performance.now()));
+    if (Number.isFinite(saved.demoElapsed) && saved.demoElapsed < 46500) {
+      demoTimers.forEach(clearTimeout);
+      demoTimers = [];
+      playDemo(saved.demoElapsed);
+    }
+    return true;
+  } catch (error) { continuityError(error); return false; }
+}
+addEventListener("pagehide", saveOffice);
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveOffice(); });
+// Save before link navigation too: pagehide may be delayed by a page's live stream.
+document.addEventListener("click", event => { if (event.target.closest?.("nav a")) saveOffice(); }, true);
 
 // ---------- Boot ----------
 team = await fetch("/api/team", { headers: { "X-DM-Token": TOKEN } }).then(r => r.json());
 await Promise.all(team.map(async m => { if (m.avatar) m.avatar = await officeAvatar(m.avatar); }));
 createSims();
+paint(performance.now());
+const restored = resumeOffice();
+paint(performance.now());
+if (reducedMotion.matches) { if (scene) endScene(false); lounge.setEnabled(false, performance.now()); }
 loadLearnedQuips();
 loadDundies();
 setInterval(loadDundies, 5 * 60_000);
-plan();
-requestAnimationFrame(frame);
+if (!restored) plan();
+setInterval(saveOffice, 2000);
+last = performance.now();
+frame(last);
+addEventListener("pageshow", event => {
+  if (!event.persisted) return;
+  resumeOffice();
+  last = performance.now();
+  paint(last);
+});
 // Start the never-ending stream only after load, so the browser does not treat the page as still loading.
 if (document.readyState === "complete") setTimeout(connectLive, 0); else addEventListener("load", () => setTimeout(connectLive, 0), { once: true });
-if (new URLSearchParams(location.search).has("demo")) $("#demoBtn").click();
+if (!demoTimers.length && new URLSearchParams(location.search).has("demo")) $("#demoBtn").click();

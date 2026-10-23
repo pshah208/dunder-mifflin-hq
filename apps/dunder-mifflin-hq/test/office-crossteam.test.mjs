@@ -45,7 +45,7 @@ test("scene selection and pickers route Michael to the warehouse", () => {
 test("office wiring uses Dunder Mifflin tokens, rooms, new ids and no old theme references", async () => {
   const [js, html] = await Promise.all([rd("office.js"), rd("office.html")]);
   assert.match(js, /teamOf\(a\.agent\) === "engineering"/);
-  assert.match(js, /walked to the warehouse to brief/);
+  assert.match(js, /is heading over to brief/);
   assert.match(js, /const SEATS = \{\r?\n  sales:/);
   assert.match(js, /"cloud-ai-architect"/);
   assert.match(html, /meta name="dm-token" content="__DM_TOKEN__"/);

@@ -166,13 +166,13 @@
   {
     "id": "product-manager",
     "persona": "Ryan Howard",
-    "title": "Product, Innovation & Brainstorm Lead",
+    "title": "Automation Builder · Product & Innovation",
     "model": "claude-sonnet-5.5",
     "color": "#34495e",
     "team": "engineering",
     "show": "The Office",
-    "summary": "The team's creative ideas person. Leads brainstorms in the conference room, then turns the best ideas into product briefs, demo scripts, use-case catalogues, roadmaps and success metrics.",
-    "owns": "Brainstorms, product briefs, demo scripts, roadmaps",
+    "summary": "Builds low-code automation drafts from plain-language requests: triggers, steps, conditions and specialist routing. Also leads brainstorms and turns ideas into product briefs, demos and roadmaps.",
+    "owns": "Automation design, brainstorms, product briefs, roadmaps",
     "sources": [
       "m365"
     ],

@@ -46,6 +46,17 @@ test("scheduler remains bounded, deterministic and preempted by real work", () =
   assert.ok(held.every(k => !l.occupancy.has(k)));
 });
 
+test("idle rotation includes every character even when random starts always miss", () => {
+  const l = new Lounge({ rng: () => .999, initialDelayMs: [0, 0], minIdleMs: 0,
+    cooldownMs: [45000, 45000], kinds: { chill: KINDS.chill }, maxOnBreak: 5 });
+  const agents = crowd(ids(15));
+  agents.push({ id: "busy", working: true, walking: false });
+  const log = simulate(l, agents, { steps: 120 });
+  const visitors = new Set(log.filter(c => c.type === "go").map(c => c.id));
+  assert.deepEqual([...visitors].sort(), ids(15).sort(), "all 15 idle characters get a turn within five minutes");
+  assert.ok(l.count <= 5);
+});
+
 test("relationship model nudges companions and ambient replies without becoming work", () => {
   assert.ok(affinity("account-strategist", "office-administrator") > affinity("regional-manager", "compliance-officer"));
   assert.ok(RELATIONSHIPS["account-strategist|office-administrator"] > 0);

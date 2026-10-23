@@ -6,7 +6,9 @@
   <meta name="dm-token" content="__DM_TOKEN__" />
   <title>Office · Dunder Mifflin HQ</title>
   <link rel="icon" href="logo.svg" />
+  <script src="theme.js"></script>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme.css" />
 </head>
 <body class="office-page">
   <header class="topbar">
@@ -21,11 +23,14 @@
       <a href="/">Chat</a>
       <a href="/team.html">Org chart</a>
       <a href="/office.html" aria-current="page">Office</a>
+      <a href="/automations.html">Automations</a>
     </nav>
+    <button id="themeToggle" class="theme-toggle" type="button" aria-label="Dark theme" aria-pressed="false">Theme: Light</button>
     <div class="weissman"><span class="label">Working now</span><span id="workingCount" class="value">0</span></div>
   </header>
 
   <main class="office">
+    <p id="officeError" class="office-error" role="alert" hidden></p>
     <div class="office-bar">
       <span id="liveStatus" class="live-pill idle">● Team idle</span>
       <span class="muted office-hint">Send a message from <a href="/" target="_blank" rel="noopener">Chat</a> (open it side by side) and watch the team get to work.</span>

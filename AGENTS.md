@@ -65,6 +65,17 @@ Multi-angle account questions ("everything about Contoso before Tuesday") go to 
 Scranton staff; deep technical questions go to `cloud-ai-architect`, who coordinates Infinity. If nested delegation is
 unavailable, the lead calls the specialists itself, in parallel.
 
+## Saved automations
+
+Ryan (`product-manager`) is the Automation Builder. Route requests to design recurring workflows to him.
+The Automations tab saves user-reviewed definitions, tests them and explicitly enables read-only schedules.
+`[AUTOMATION BUILDER]` is design-only: return the requested JSON schema without data access or execution.
+`[SAVED AUTOMATION]` runs execute the saved steps in order, delegate to the assigned agents (or choose the
+smallest suitable team for `auto`), evaluate conditions from prior results, and report sources and blocked steps.
+Follow the run's required completion-status format. Never claim a workflow succeeded when its deliverable is blocked.
+No automatic write retries, no permission escalation, and no new schedules from a running automation.
+Interactive on-demand workflows keep all existing approvals. Darryl remains the code/integration specialist.
+
 ## Conference-room meetings (brainstorms and idea discussions)
 
 Michael calls the team into the conference room for anything that benefits from several perspectives at once:

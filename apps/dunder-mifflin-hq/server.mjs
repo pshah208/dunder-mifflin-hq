@@ -19,6 +19,7 @@ import { SPEEDS, quickLeadModel, orchestrationBlock } from "./orchestration.mjs"
 import { createMessageQueue, publicQueue } from "./message-queue.mjs";
 import { IMAGE_TYPES, DOCUMENT_TYPES, referenceMime, fileExtension, isImageAttachment } from "./public/attachment-types.js";
 import { extractReference } from "./reference-files.mjs";
+import { createAutomationStore, validateAutomation, parseAutomationDraft, automationBuildPrompt, automationRunPrompt, automationResultError } from "./automations.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -398,6 +399,7 @@ function applyAgentModelOverrides(customAgents, agentModels, validModelIds) {
     if (validModelIds.size && !validModelIds.has(agent.model)) {
       const next = { ...agent };
       delete next.model;
+      next.prompt += `\n\nRuntime model notice: the configured default ${agent.model} is unavailable. Inherit the session model unless explicitly overridden with an enabled model. Do not request the unavailable default.`;
       return next;
     }
     return { ...agent };
@@ -860,11 +862,10 @@ export async function replaceFileAtomic(source, destination, renameFile = rename
   }
 }
 
-export const normalizeSessionKind = kind => (kind === "study" ? "study" : "chat");
+export const normalizeSessionKind = kind => (["study", "automation", "automation-build"].includes(kind) ? kind : "chat");
 
-async function createSession({ title, kind = "chat" }) {
+async function createSession({ title, kind = "chat", id = randomUUID() }) {
   const now = new Date().toISOString();
-  const id = randomUUID();
   const doc = {
     meta: {
       id,
@@ -1399,6 +1400,8 @@ async function buildPrompt({
   } else lines.push("No Azure target selected. Do not change any Azure resources.");
   if (kind === "study") {
     lines.push("mode: PLAN — read-only background research (character study). Nobody is watching: never call ask_user. Connectors are disabled for this run.");
+  } else if (kind === "automation-build" || (kind === "automation" && mode === "plan")) {
+    lines.push("mode: PLAN — unattended read-only automation. Do not ask questions or wait for a person. Missing inputs or permissions must be reported as blocked. Never escalate permissions.");
   } else if (mode === "plan") {
     lines.push("mode: PLAN — read-only. Shell and file writes are disabled.");
     lines.push("When you need a decision or information from the user, call the ask_user tool (one question per call, with choices; put the recommended option first and mark it '(Recommended)') instead of asking in prose, then wait for the answer.");
@@ -1408,7 +1411,7 @@ async function buildPrompt({
   }
   else lines.push("mode: AUTOPILOT — the user has approved execution for this conversation. Execute the requested work end-to-end without asking permission for each tool, browser click, filter, file change or connector action. This overrides routine per-agent 'ask before every write' instructions, not scope, mandatory reviews, managed approvals, service confirmations or sign-in/MFA. Do not expand the user's request or perform unrelated/destructive actions. Azure restrictions still apply.");
   lines.push("[/TARGET]");
-  const connectorsBlock = kind === "study" ? "" : await buildConnectorsPromptBlock(connectorSnapshot);
+  const connectorsBlock = ["study", "automation-build"].includes(kind) ? "" : await buildConnectorsPromptBlock(connectorSnapshot);
   if (connectorsBlock) lines.push("", connectorsBlock);
   const modelsBlock = buildModelsPromptBlock({
     enabledModelDetails,
@@ -1719,19 +1722,31 @@ async function runInteractiveWithSdk(ctx) {
   let lastMessageId = null;
   let needsFinalAnswer = false;
   let finalizingOnly = false;
+  let automationBlocked = null;
+  const rejectPermission = feedback => {
+    if (ctx.kind === "automation") automationBlocked = feedback;
+    return { kind: "reject", feedback };
+  };
   const publish = (ev) => liveBus.publish(hqSessionId, { ...ev, runId });
   const rewardTracker = ctx.kind === "study" ? null : createRunTracker();
   let sendAdmitted = false;
   let finishTriggered = false;
+  let timeout = null;
   const finish = async (code, errorText = null) => {
     if (finishTriggered) return;
+    if (!errorText && automationBlocked) { code = 1; errorText = automationBlocked; }
     if (runRegistry.get(hqSessionId)?.stopped) { code = 1; errorText = "Stopped by user."; }
     if (!errorText && !lastAssistantText.trim()) {
       code = 1;
       errorText = "Michael finished without a response. Please retry or continue this conversation; no answer was produced.";
       publish({ t: "error", text: errorText });
     }
+    if (!errorText && ctx.completionError) {
+      errorText = ctx.completionError(lastAssistantText);
+      if (errorText) { code = 1; publish({ t: "error", text: errorText }); }
+    }
     finishTriggered = true;
+    if (timeout) clearTimeout(timeout);
     clearPendingForRun(hqSessionId, runId);
     try {
       await persistEntryWithReporting(hqSessionId, {
@@ -1761,6 +1776,14 @@ async function runInteractiveWithSdk(ctx) {
       errorText = `Could not save the response: ${error.message}`;
       throw error;
     } finally {
+      try {
+        await ctx.onFinished?.({ answer: lastAssistantText, error: errorText });
+      } catch (e) {
+        code = 1;
+        errorText = `Automation status could not be saved: ${e.message}`;
+        console.error(errorText);
+        publish({ t: "error", text: errorText });
+      }
       await Promise.race([
         session?.disconnect?.() || Promise.resolve(),
         new Promise(resolve => setTimeout(resolve, 1500)),
@@ -1785,17 +1808,26 @@ async function runInteractiveWithSdk(ctx) {
   if (activeRun && activeRun.runId === runId) {
     activeRun.finish = finish;
   }
+  if (ctx.timeoutMs) {
+    timeout = setTimeout(() => {
+      const finishing = finish(1, "Automation run time limit exceeded. Review history before retrying.");
+      void session?.abort?.().catch(e => console.error(`automation abort failed: ${e.message}`));
+      void finishing.catch(e => console.error(e));
+    }, ctx.timeoutMs);
+    timeout.unref?.();
+  }
 
   try {
     const onPermissionRequest = async (request) => {
       if (finishTriggered || activeRun?.stopped) return { kind: "reject", feedback: "Run stopped or already completed." };
       if (finalizingOnly) return { kind: "reject", feedback: "Summarize existing results only. Do not run more tools or repeat actions." };
+      if (ctx.kind === "automation-build") return { kind: "reject", feedback: "Design the automation only; data access and execution are disabled." };
       if (ctx.kind === "study") return studyPermissionDecision(request); // unattended: public web reads only
       if (ctx.mode === "plan") {
-        if (request.managedApprovalRequired) return { kind: "reject", feedback: "Managed approval is required; switch to Interactive mode." };
+        if (request.managedApprovalRequired) return rejectPermission("Managed approval is required; switch to Interactive mode.");
         if (request.kind === "read") return { kind: "approve-once" };
         if (isReadOnlyMcpRequest(request)) return { kind: "approve-once" };
-        return { kind: "reject", feedback: "Read-only plan mode: denied." };
+        return rejectPermission("Read-only plan mode: denied.");
       }
       const targetError = azureShellTargetError(request, ctx);
       if (targetError) return { kind: "reject", feedback: targetError };
@@ -1808,9 +1840,11 @@ async function runInteractiveWithSdk(ctx) {
       }
       const approvalId = randomUUID();
       publish({ t: "approval_required", approvalId, request: summarizePermissionRequest(request) });
-      return new Promise((resolve) => {
+      const decision = await new Promise((resolve) => {
         pendingApprovals.set(approvalId, { approvalId, hqSessionId, runId, request, resolve });
       });
+      if (decision.kind === "reject" && ctx.kind === "automation") automationBlocked = "A required action was denied.";
+      return decision;
     };
     const onUserInputRequest = async (request) => {
       if (finishTriggered) return { answer: "Cancelled", wasFreeform: true };
@@ -1830,14 +1864,19 @@ async function runInteractiveWithSdk(ctx) {
     // never auto-accept, even in Autopilot. Plan mode is read-only, so it declines.
     const onElicitationRequest = async (elicitCtx) => {
       if (finishTriggered) return { action: "cancel" };
-      if (ctx.mode === "plan") return { action: "decline" };
+      if (ctx.mode === "plan") {
+        if (ctx.kind === "automation") automationBlocked = "A service requested confirmation during an unattended read-only run.";
+        return { action: "decline" };
+      }
       const summary = summarizeElicitation(elicitCtx);
       if (summary.mode !== "form") return { action: "decline" };
       const elicitationId = randomUUID();
       publish({ t: "elicitation_required", elicitationId, ...summary });
-      return new Promise((resolve) => {
+      const decision = await new Promise((resolve) => {
         pendingElicitations.set(elicitationId, { elicitationId, hqSessionId, runId, summary, resolve });
       });
+      if (decision.action !== "accept" && ctx.kind === "automation") automationBlocked = "A required service confirmation was declined.";
+      return decision;
     };
     const onExitPlanModeRequest = async () => ({ approved: false, feedback: "Plan mode switch must be user-initiated in HQ." });
     const onEvent = (event) => {
@@ -1846,6 +1885,8 @@ async function runInteractiveWithSdk(ctx) {
       const fromSubagent = !!childId;
       const reduced = reduceEvent(event);
       if (reduced) {
+        if (ctx.kind === "automation" && ["tool_end", "agent_end"].includes(reduced.t) && reduced.ok === false)
+          automationBlocked = reduced.error || "A tool or specialist failed. Review the run before retrying.";
         rewardTracker?.observe(reduced, childId || null);
         if (["tool", "delegate", "agent_start", "agent_end", "tool_end"].includes(reduced.t)) needsFinalAnswer = true;
         if (!fromSubagent && reduced.t === "delta") {
@@ -1885,7 +1926,7 @@ async function runInteractiveWithSdk(ctx) {
     const handlers = {
       onPermissionRequest,
       onElicitationRequest,
-      ...(ctx.mode === "autopilot" || ctx.kind === "study" ? {} : { onUserInputRequest }),
+      ...(ctx.mode === "autopilot" || ctx.kind === "study" || ctx.kind === "automation-build" || (ctx.kind === "automation" && ctx.mode === "plan") ? {} : { onUserInputRequest }),
       ...(ctx.mode === "plan" ? { onExitPlanModeRequest } : {}),
       onEvent,
     };
@@ -1901,9 +1942,12 @@ async function runInteractiveWithSdk(ctx) {
       workingDirectory: repoPath,
       agentModels,
       validModelIds,
-      connectors: ctx.kind !== "study",
+      connectors: !["study", "automation-build"].includes(ctx.kind),
       connectorSnapshot: ctx.connectorSnapshot,
     });
+    const unavailableDefaults = (await loadSdkCustomAgents())
+      .filter(a => a.model && validModelIds.size && !validModelIds.has(a.model) && !agentModels?.[a.name]);
+    if (unavailableDefaults.length) publish({ t: "log", text: `Unavailable persona defaults inherit the session model: ${unavailableDefaults.map(a => a.name).join(", ")}. Explicit model overrides remain unchanged.` });
     try {
       session = await client.resumeSession(meta.copilotSessionId, sessionConfig);
     } catch (e) {
@@ -1976,6 +2020,9 @@ async function startRun({
   kind = "chat",
   speed = "auto",
   fromQueue = false,
+  onFinished,
+  completionError,
+  timeoutMs,
 }) {
   const runKind = normalizeSessionKind(kind);
   if (!SPEEDS.includes(speed)) return { ok: false, status: 400, error: "bad speed" };
@@ -2025,6 +2072,7 @@ async function startRun({
       try {
         const catalog = await listEnabledModelDetails({ allowStaleOnError: true });
         enabledModelDetails = catalog.details;
+        validModelIds = new Set(enabledModelDetails.map(detail => String(detail.id)));
         catalogStatus = catalog.status;
         catalogError = catalog.error || null;
       } catch (error) {
@@ -2039,7 +2087,7 @@ async function startRun({
     if (!lock.ok) throw Object.assign(new Error("This conversation is busy in another HQ instance."), { status: 409 });
     lockAcquired = true;
 
-    const connectorSnapshot = runKind === "study" ? undefined : await connectorStatus();
+    const connectorSnapshot = ["study", "automation-build"].includes(runKind) ? undefined : await connectorStatus();
     const scorecardBlock = runKind === "study" || speed === "quick" ? "" : await buildScorecardBlockSafe();
     const prompt = await buildPrompt({
       message,
@@ -2104,6 +2152,9 @@ async function startRun({
       validModelIds,
       kind: runKind,
       connectorSnapshot,
+      onFinished,
+      completionError,
+      timeoutMs,
     };
     void runInteractiveWithSdk(ctx);
     return { ok: true, runId, repoId: effectiveRepoId };
@@ -2272,6 +2323,81 @@ function startStudyScheduler() {
 }
 export const triggerStudySchedulerTickForTests = () => runStudySchedulerTick();
 
+// ---------- Saved automations ----------
+const AUTOMATIONS_DIR = path.join(APP_HOME, "automations");
+const AUTOMATIONS_FILE = path.join(AUTOMATIONS_DIR, "store.json");
+let automationStorePromise;
+let automationSchedulerError = null;
+let automationTickRunning = false;
+function getAutomationStore() {
+  return automationStorePromise ||= readTeamPersonas().then(team => createAutomationStore({
+    agentIds: new Set(team.map(a => a.id)),
+    read: () => readJsonFile(AUTOMATIONS_FILE, null),
+    write: async state => {
+      await mkdir(AUTOMATIONS_DIR, { recursive: true });
+      await writeJsonAtomic(AUTOMATIONS_FILE, state);
+    },
+  }));
+}
+async function validateAutomationModels(definition) {
+  if (Object.keys(definition.agentModels).length)
+    await resolveModelSelection({ agentModels: definition.agentModels, hasAttachments: false });
+}
+async function startAutomation({ id, revision, trigger = "manual", request, timezone }) {
+  const store = await getAutomationStore();
+  const hqSessionId = randomUUID();
+  // Persist admission before any SDK call; restart recovery never replays a claimed run.
+  const run = await store.claim({ id, revision, trigger, hqSessionId, request, timezone });
+  if (!run) return { skipped: true };
+  try {
+    const builder = trigger === "build";
+    const definition = run.definition;
+    if (definition) await validateAutomationModels(definition);
+    const mode = builder || trigger === "test" ? "plan" : definition.mode;
+    const kind = builder ? "automation-build" : "automation";
+    const team = await readTeamPersonas();
+    const agentIds = new Set(team.map(a => a.id));
+    const message = builder
+      ? automationBuildPrompt(request, team, timezone)
+      : automationRunPrompt({ ...definition, mode }, { trigger, at: run.startedAt });
+    await createSession({ id: hqSessionId, title: `${builder ? "Build" : "Automation"}: ${run.name}`, kind });
+    const started = await startRun({
+      hqSessionId, message, mode, kind, speed: "auto", attachmentIds: [],
+      agentModels: definition && Object.keys(definition.agentModels).length ? definition.agentModels : null,
+      timeoutMs: (definition?.timeoutMinutes ?? 5) * 60_000,
+      completionError: builder ? answer => {
+        try { parseAutomationDraft(answer, agentIds); return null; } catch (e) { return e.message; }
+      } : automationResultError,
+      onFinished: result => store.finish(run.id, result),
+    });
+    if (!started.ok) throw Object.assign(new Error(started.error), { status: started.status });
+    return { accepted: true, hqSessionId, runId: run.id, sdkRunId: started.runId };
+  } catch (e) {
+    await store.finish(run.id, { error: e.message });
+    e.automationRecorded = true;
+    throw e;
+  }
+}
+async function automationSchedulerTick() {
+  if (automationTickRunning || queueShutdown || automationSchedulerError || !teamIsFree()) return;
+  automationTickRunning = true;
+  try {
+    const state = await (await getAutomationStore()).list();
+    if (state.runs.some(r => r.state === "running")) return;
+    const due = state.definitions.filter(d => d.enabled && d.nextRunAt && Date.parse(d.nextRunAt) <= Date.now())
+      .sort((a, b) => a.nextRunAt.localeCompare(b.nextRunAt))[0];
+    if (due && teamIsFree()) await startAutomation({ id: due.id, revision: due.revision, trigger: "schedule" });
+  } catch (e) {
+    if (e.automationRecorded) {
+      console.error(`Scheduled automation failed and was paused: ${e.message}`);
+    } else if (e.status !== 409) {
+      automationSchedulerError = e.message;
+      console.error(`Automation scheduler paused: ${e.message}`);
+    }
+  } finally { automationTickRunning = false; }
+}
+export const triggerAutomationSchedulerTickForTests = () => automationSchedulerTick();
+
 function sendJson(res, status, obj) {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(obj));
@@ -2326,6 +2452,9 @@ export function createServer(options = {}) {
   let port = Number(options.port || PORT);
   const studySchedulerOn = options.enableStudyScheduler !== undefined ? !!options.enableStudyScheduler : STUDY_SCHEDULER_ENABLED;
   const studyScheduler = studySchedulerOn ? startStudyScheduler() : null;
+  const automationSchedulerOn = options.enableAutomationScheduler ?? (process.env.DM_AUTOMATION_SCHEDULER !== "0" && !process.env.NODE_TEST_CONTEXT);
+  const automationScheduler = automationSchedulerOn ? setInterval(() => { void automationSchedulerTick(); }, 15_000) : null;
+  automationScheduler?.unref?.();
   const token = options.token || TOKEN;
   const server = http.createServer(async (req, res) => {
     try {
@@ -2335,6 +2464,49 @@ export function createServer(options = {}) {
 
       if (url.pathname.startsWith("/api/")) {
         if (req.headers["x-dm-token"] !== token) return sendJson(res, 401, { error: "bad token" });
+        if (req.method === "GET" && url.pathname === "/api/automations") {
+          const state = await (await getAutomationStore()).list();
+          return sendJson(res, 200, { ...state, schedulerEnabled: automationSchedulerOn, schedulerError: automationSchedulerError,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+        }
+        if (req.method === "POST" && url.pathname === "/api/automations/build") {
+          const body = await readBody(req);
+          if (typeof body.request !== "string" || !body.request.trim() || body.request.length > 5000)
+            return sendJson(res, 400, { error: "Describe the automation in 1-5000 characters." });
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          return sendJson(res, 202, await startAutomation({ trigger: "build", request: body.request.trim(), timezone }));
+        }
+        if (req.method === "POST" && url.pathname === "/api/automations") {
+          const body = await readBody(req);
+          const team = await readTeamPersonas();
+          const definition = validateAutomation(body, new Set(team.map(a => a.id)));
+          await validateAutomationModels(definition);
+          return sendJson(res, 201, await (await getAutomationStore()).save(definition));
+        }
+        const automationPath = url.pathname.match(/^\/api\/automations\/([0-9a-f-]{36})(?:\/(run|enabled|stop))?$/);
+        if (automationPath) {
+          const [, id, action] = automationPath;
+          const store = await getAutomationStore();
+          const body = ["PUT", "POST", "DELETE"].includes(req.method) ? await readBody(req) : {};
+          if (!action && req.method === "PUT") {
+            const definition = validateAutomation(body, new Set((await readTeamPersonas()).map(a => a.id)));
+            await validateAutomationModels(definition);
+            return sendJson(res, 200, await store.save(definition, id, body.revision));
+          }
+          if (!action && req.method === "DELETE") return sendJson(res, 200, await store.remove(id, body.revision));
+          if (action === "enabled" && req.method === "POST")
+            return sendJson(res, 200, await store.enable(id, body.revision, body.enabled));
+          if (action === "run" && req.method === "POST")
+            return sendJson(res, 202, await startAutomation({ id, revision: body.revision, trigger: body.test === true ? "test" : "manual" }));
+          if (action === "stop" && req.method === "POST") {
+            const state = await store.list();
+            const run = state.runs.find(r => r.id === id && r.state === "running");
+            if (!run) return sendJson(res, 404, { error: "Active automation run not found." });
+            const stopped = runRegistry.stop(run.hqSessionId);
+            if (!stopped) return sendJson(res, 409, { error: "Run is being admitted; retry Stop shortly." });
+            return sendJson(res, 200, { stopped: true });
+          }
+        }
         if (req.method === "GET" && url.pathname === "/api/team") {
           const team = JSON.parse(await readFile(path.join(__dirname, "personas.json"), "utf8"));
           for (const m of team) {
@@ -2640,7 +2812,7 @@ export function createServer(options = {}) {
       if (!isSafeStaticPath(file)) return sendJson(res, 403, { error: "forbidden" });
       let data = await readFile(file).catch(() => null);
       if (!data) return sendJson(res, 404, { error: "not found" });
-      if (["/index.html", "/team.html", "/office.html"].includes(rel)) data = Buffer.from(data.toString("utf8").replace("__DM_TOKEN__", token));
+      if (["/index.html", "/team.html", "/office.html", "/automations.html"].includes(rel)) data = Buffer.from(data.toString("utf8").replace("__DM_TOKEN__", token));
       res.writeHead(200, {
         "Content-Type": MIME[path.extname(file)] || "application/octet-stream",
         "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:",
@@ -2670,6 +2842,7 @@ export function createServer(options = {}) {
   server.on("close", () => {
     queueShutdown = true;
     if (studyScheduler) clearInterval(studyScheduler);
+    if (automationScheduler) clearInterval(automationScheduler);
     void stopAllSdkClients();
   });
   return { server, getPort: () => port };

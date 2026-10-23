@@ -70,7 +70,7 @@ test("meeting tasks are recognised by Michael's prefix, not by any mention of id
   assert.equal(stripMeetingPrefix("Meeting: brainstorm launch ideas"), "brainstorm launch ideas");
   const js = await readFile(path.resolve("public", "office.js"), "utf8");
   assert.match(js, /if \(meeting\.size\) goTo\(r, \.\.\.CONF_HEAD, "talk"\);/, "Michael runs meetings from the head of the table");
-  assert.match(js, /if \(meeting\.has\(id\)\) goTo\(s, \.\.\.confSeat\(\), "talk"\);/, "attendees walk to the conference room");
+  assert.match(js, /if \(meeting\.has\(id\)\) \{\s+goTo\(s, \.\.\.confSeat\(\), "talk"\);/, "attendees walk to the conference room");
   assert.match(js, /summary: "Meeting: brainstorm launch ideas"/, "the demo shows a meeting");
 });
 

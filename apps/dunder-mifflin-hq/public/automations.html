@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="dm-token" content="__DM_TOKEN__" />
+  <title>Automations · Dunder Mifflin HQ</title>
+  <link rel="icon" href="logo.svg" />
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="automations.css" />
+  <link rel="stylesheet" href="theme.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="logo.svg" alt="" width="36" height="36" /><div>
+      <h1>Dunder Mifflin <span>HQ</span></h1><p class="tagline">Your recurring work. The right people. Less paper.</p>
+    </div></div>
+    <nav class="nav" aria-label="Pages">
+      <a href="/">Chat</a><a href="/team.html">Org chart</a><a href="/office.html">Office</a>
+      <a href="/automations.html" aria-current="page">Automations</a>
+    </nav>
+    <button id="themeToggle" class="theme-toggle" type="button" aria-label="Dark theme" aria-pressed="false">Theme: Light</button>
+  </header>
+  <main class="automation-page">
+    <section class="automation-intro">
+      <div><p class="eyebrow">Dunder Mifflin Infinity</p><h2>Automations, without the busywork.</h2>
+        <p>Describe a workflow to Ryan, review its steps, then let Michael bring in the right specialists.</p></div>
+      <div class="builder-owner"><img src="avatars/product-manager.svg" alt="" width="50" height="50" /><div><strong>Ryan Howard</strong><br /><span class="muted">Automation Builder</span></div></div>
+    </section>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <p id="error" role="alert" hidden></p>
+    <p id="schedulerStatus" class="muted"></p>
+    <section class="automation-builder panel" aria-labelledby="builderTitle">
+      <h2 id="builderTitle">What should the team take off your plate?</h2>
+      <form id="builderForm">
+        <label for="buildRequest">Describe the sources, filters, desired result and when to run.</label>
+        <textarea id="buildRequest" required maxlength="5000" placeholder="Every morning, prepare a briefing from my calendar, important email and upcoming MSX milestones. Draft only."></textarea>
+        <div class="automation-actions"><button class="primary" id="buildButton">Build with Ryan</button><span class="muted">Creates a draft only. Uses your Copilot models; nothing is enabled automatically.</span></div>
+      </form>
+      <div class="automation-actions" aria-label="Starter templates">
+        <span class="muted">Or start with:</span>
+        <button type="button" data-template="morning">Morning briefing</button>
+        <button type="button" data-template="pipeline">Pipeline review</button>
+        <button type="button" data-template="blank">Blank workflow</button>
+      </div>
+    </section>
+    <div class="automation-workspace">
+      <aside class="panel"><h2>Saved workflows</h2><p class="muted">Edits pause the schedule until you test and enable the new revision.</p><div id="workflowList"></div></aside>
+      <section class="panel" aria-labelledby="editorTitle">
+        <div class="automation-actions"><h2 id="editorTitle">New workflow</h2><span id="saveState" class="muted"></span></div>
+        <form id="workflowForm">
+          <div class="automation-fields">
+            <label>Name<input id="workflowName" required maxlength="100" /></label>
+            <label>Permissions<select id="workflowMode"><option value="plan">Read-only / drafts</option><option value="interactive">Interactive writes (on demand only)</option></select></label>
+          </div>
+          <label>Scope and assumptions<textarea id="workflowDescription" maxlength="2000" placeholder="Which sources and filters? What should the result contain?"></textarea></label>
+          <fieldset><legend>1. Trigger</legend>
+            <div class="automation-fields">
+              <label>Run<select id="triggerType"><option value="manual">On demand</option><option value="interval">Every N minutes</option><option value="daily">Daily</option><option value="weekly">Weekly</option></select></label>
+              <label id="minutesField" hidden>Interval (minutes)<input id="intervalMinutes" type="number" min="15" max="10080" value="60" /></label>
+              <label id="timeField" hidden>Time<input id="scheduleTime" type="time" value="08:30" /></label>
+              <label id="timezoneField" hidden>Timezone (IANA)<input id="scheduleTimezone" placeholder="America/New_York" /></label>
+              <label id="weekdayField" hidden>Day<select id="scheduleDay"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></label>
+              <label>Run limit (minutes)<input id="timeoutMinutes" type="number" min="1" max="30" value="10" required /></label>
+            </div>
+          </fieldset>
+          <fieldset><legend>2. Steps and routing</legend>
+            <p class="muted">Michael executes steps in order using your selected specialists. Conditions are evaluated by the LLM from earlier results; unknown conditions are skipped.</p>
+            <div id="steps"></div><button type="button" id="addStep">+ Add step</button>
+          </fieldset>
+          <details><summary>Model overrides (optional)</summary><p id="modelStatus" class="muted">Loading available models...</p><div id="modelOverrides" class="automation-fields"></div></details>
+          <fieldset><legend>3. Result</legend><p>Results and sources are saved in a dedicated HQ conversation. Use <b>Open run</b> to read the answer or respond to interactive approval cards.</p>
+            <p class="muted">Test performs a real read-only run and consumes model usage. Scheduled jobs cannot send messages, change CRM records or operate browser controls.</p>
+          </fieldset>
+          <div class="automation-actions">
+            <button type="submit" id="saveWorkflow" class="primary">Save draft</button>
+            <button type="button" id="testWorkflow">Test read-only</button>
+            <button type="button" id="runWorkflow">Run now</button>
+            <button type="button" id="toggleSchedule">Enable schedule</button>
+            <button type="button" id="deleteWorkflow" class="ghost">Delete</button>
+          </div>
+        </form>
+      </section>
+    </div>
+    <section class="panel automation-history" aria-labelledby="historyTitle">
+      <h2 id="historyTitle">Run history</h2><p class="muted">One automation runs at a time. Failures pause its schedule; interrupted jobs are never automatically retried.</p>
+      <div id="runHistory"></div>
+    </section>
+    <p class="muted">Keep HQ running and this computer awake. The browser can be closed. Missed schedules are skipped after restart; no catch-up burst. Workflows and results stay in your private HQ data directory.</p>
+  </main>
+  <script src="nav.js" type="module"></script>
+  <script src="automations.js" type="module"></script>
+</body>
+</html>

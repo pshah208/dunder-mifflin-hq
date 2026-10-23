@@ -148,6 +148,7 @@ By default, private state lives at `%USERPROFILE%\.dunder-mifflin-hq`, outside G
 | `history\locks` | Runtime/edit coordination files; not data to migrate |
 | `rewards` | Feedback and scorecards |
 | `personas` | Study settings, notes and run records |
+| `automations` | Saved workflow definitions, revision/test state, schedules and run snapshots |
 | `config` | Private repository/configuration data |
 | `browser` | Browser output and the default dedicated Edge profile |
 
@@ -159,6 +160,27 @@ Data is not encrypted by this app; protect the Windows account, disk and backups
 Queued requests run serially within each conversation. Stop or a failed run pauses its queue.
 After restart, review pending messages and use Resume explicitly. Check history before removing
 an uncertain admission and resubmitting it; never blindly replay an action that may have completed.
+
+### Scheduled automations
+
+Use the **Automations** tab to build with Ryan or edit a template. Review and save the workflow,
+run **Test read-only**, then explicitly **Enable schedule**. Tests/builds/runs consume model usage.
+The scheduler checks every 15 seconds while HQ is running and launches at most one automation at a time,
+waiting while other HQ work is active. Daily/weekly times include an explicit IANA timezone.
+An open browser is not required; the process must remain running and the machine awake.
+
+Scheduled jobs cannot write or operate browser controls. Use an Interactive, on-demand workflow for
+operations needing approval. Authentication/MFA remains manual. Missing inputs, denied actions, failed
+tools or missing completion status fail the run rather than unlocking a schedule with a partial result.
+Definitions are versioned: edits pause scheduling and invalidate the prior successful test.
+An error pauses that workflow; review the run before testing/enabling it again. No automatic action retries.
+
+On restart, interrupted jobs are marked interrupted and paused, never replayed. Other enabled schedules
+skip missed slots and continue at their next future occurrence. Back up the `automations` folder along
+with history; never run a second HQ process using the same `DM_DATA_DIR`.
+Set `$env:DM_AUTOMATION_SCHEDULER = "0"` before startup to disable automatic scheduling.
+If the portal reports a scheduler storage error, resolve the underlying file/permission problem and
+restart HQ. Do not delete state files or restart to replay an uncertain action.
 
 For an always-available desktop setup, keep the process running in a dedicated user terminal.
 If you configure Task Scheduler, choose **Run only when the user is logged on**, launch under the

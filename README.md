@@ -34,6 +34,10 @@ you can override any agent's model in the UI.
 
 ### Responsive coordination
 
+Use **Theme: Light / Theme: Dark** in the header to switch appearance across Chat, Org chart, Office
+and Automations. The choice is saved in this browser and synchronized across tabs on the same HQ address.
+Light remains the default; Office artwork and character colors are preserved in either theme.
+
 Use the **⚡ Quick · Auto · 👥 Team** control beside the composer, inspired by Pied Piper HQ:
 
 - **Quick:** Michael answers directly, with an available fast lead model unless you chose one explicitly.
@@ -92,11 +96,51 @@ Remove pending messages before deleting a conversation.
 The Office now replays active delegations when opened/reconnected and keeps specialists active until
 their SDK completion event. Specialist text/results cannot end Michael's scene. Meeting task descriptions
 retain the `Meeting:` prefix that sends participants to the conference room.
+Office positions, walking paths, breaks and social scenes resume when you switch to Chat and back in
+the same browser tab (including a page refresh). Decorative animation pauses while away; live work
+is reconciled with the server on return. Idle outings rotate fairly across all available characters.
+Initial and restored positions are drawn before animation starts, so deferred browser animation cannot
+pile the characters into one spot. Rendering errors are shown in the Office rather than failing silently.
+For a request involving multiple teams, Michael gathers its stakeholders in the conference room,
+regardless of where their desks are, and keeps them together while he synthesizes their results.
 The runtime waits past intermediate Autopilot idle events, preserves delta-only replies and reports an
 explicit failure rather than silently saving an empty successful answer.
 If tools finished but Michael omitted the final answer, HQ makes one summary-only follow-up using
 existing results; tool permissions are denied during that follow-up so it cannot repeat actions.
 If that still produces no final answer, the run fails explicitly and the queue stays paused.
+
+### Automations
+
+Open **Automations** in the navigation to build recurring work without writing code.
+Ryan is the **Automation Builder**: describe a workflow and he proposes a disabled draft with
+triggers, ordered steps, conditions and specialist assignments. Review/edit that draft or use a
+Morning briefing / Pipeline review template. Each step can name a specialist or let Michael route it.
+Darryl remains the code/integration specialist.
+
+**Save draft → Test read-only → Enable schedule**. Test is a real read-only model run, not a simulation.
+An enabled schedule must have a successful test of its current revision; editing pauses it and requires
+another test. **Run now** executes the saved revision on demand. Results, errors and approval cards
+open in a dedicated Chat conversation; actual delegations also appear in the Office.
+
+- Triggers: on demand, every 15 minutes or longer, daily, or weekly. Daily/weekly schedules use an
+  explicit IANA timezone. Nonexistent daylight-saving times are skipped; a repeated local hour runs once.
+- Scheduled jobs are **read-only**. Jobs requiring writes must use **Interactive + On demand** and retain
+  the existing approval/service-confirmation flow. Scheduled browser navigation/filter clicks are not supported.
+- Optional per-agent model overrides use the same enabled model catalog as Chat. If a persona's configured
+  default is unavailable, it inherits the session model and a notice appears in activity; explicit overrides
+  are validated and never silently substituted.
+- Conditions are **LLM-evaluated instructions**, not executable expressions or deterministic branching.
+  Steps run in one coordinated agent conversation; there is no per-step resume/retry engine.
+- Run history keeps 200 records and links to the full conversation. One automation/builder runs at a time;
+  scheduled work waits while other HQ work is active. Run limits are 1-30 minutes.
+- Failed runs pause their workflow. After restart, interrupted runs are marked interrupted and their
+  workflow is paused; missed schedule slots are skipped, never replayed in a catch-up burst.
+- Keep HQ running and the host awake. Closing the browser is fine. Every build/test/run consumes normal
+  model usage. `DM_AUTOMATION_SCHEDULER=0` disables automatic scheduling without removing saved workflows.
+
+Definitions and execution snapshots are private under `DM_DATA_DIR\automations\store.json` (default:
+`%USERPROFILE%\.dunder-mifflin-hq\automations\store.json`). Run only one HQ instance against a data directory.
+No webhook/email-arrival triggers, Power Automate exports, cloud scheduler or unattended writes are included.
 
 ### Customer360 through Edge
 
